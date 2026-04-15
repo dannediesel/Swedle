@@ -6,8 +6,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Backend fungerar!! Wooohoo!");
+app.get("/", (_req, res) => {
+  res.json({ message: "Swedle API is running" });
 });
 
 export default app;
