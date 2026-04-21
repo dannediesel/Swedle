@@ -17,7 +17,10 @@ type PlayerCsvRow = {
   nt_end_year: string;
 };
 
+const filePath = path.join(__dirname, "..", "data", "players.csv");
+
 let cachedPlayers: Player[] | null = null;
+let cachedPlayersMtimeMs: number | null = null;
 
 function toNullableNumber(value: string): number | null {
   const trimmed = value.trim();
@@ -46,11 +49,12 @@ function parseStringList(value: string): string[] {
 }
 
 export async function getAllPlayers(): Promise<Player[]> {
-  if (cachedPlayers) {
+  const fileStats = await fs.stat(filePath);
+
+  if (cachedPlayers && cachedPlayersMtimeMs === fileStats.mtimeMs) {
     return cachedPlayers;
   }
 
-  const filePath = path.join(__dirname, "..", "data", "players.csv");
   const fileContent = await fs.readFile(filePath, "utf-8");
 
   const rows = parse(fileContent, {
@@ -75,6 +79,7 @@ export async function getAllPlayers(): Promise<Player[]> {
   }));
 
   cachedPlayers = players;
+  cachedPlayersMtimeMs = fileStats.mtimeMs;
   return players;
 }
 
