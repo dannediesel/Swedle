@@ -1,16 +1,87 @@
 full_name,birth_year,primary_position,dominant_foot,sweden_primary_shirt_number,sweden_all_shirt_numbers,clubs_clue_list,national_team_caps,national_team_goals,nt_start_year,nt_end_year
-Robin Olsen,1990,Målvakt,Right,1,,Malmö FF|FC Copenhagen|PAOK|AS Roma|Cagliari|Everton|Sheffield United|Aston Villa,79,0,2015,2025
-Kristoffer Nordfeldt,1989,Målvakt,Right,23,,Brommapojkarna|SC Heerenveen|Swansea City|Gençlerbirliği|AIK,19,0,2011,2023
-Victor Lindelöf,1994,Mittback,Right,3,,Västerås SK|Benfica|Manchester United|Aston Villa,74,3,2016,2025
-Carl Starfelt,1995,Mittback,Right,6,,Brommapojkarna|IF Brommapojkarna|Degerfors IF|IFK Göteborg|Rubin Kazan|Celtic|Celta de Vigo,16,0,2020,2025
-Gabriel Gudmundsson,1999,Vänsterback,Left,5,,Halmstads BK|FC Groningen|Lille|Leeds United,22,0,2022,2025
-Emil Krafth,1994,Högerback,Right,2,,Östers IF|Helsingborgs IF|Bologna|Amiens|Newcastle United,52,0,2014,2025
-Jesper Karlström,1995,Mittfältare,Right,16,,Brommapojkarna|Djurgården|Lech Poznań|Udinese,22,0,2018,2025
-Mattias Svanberg,1999,Mittfältare,Right,15,,Malmö FF|Bologna|VfL Wolfsburg,36,2,2019,2025
-Dejan Kulusevski,2000,Mittfältare,Left,21,,Atalanta|Parma|Juventus|Tottenham Hotspur,45,5,2019,2024
-Emil Forsberg,1991,Mittfältare,Right,10,,GIF Sundsvall|Malmö FF|RB Leipzig|New York Red Bulls,92,21,2014,2025
-Anthony Elanga,2002,Högerytter,Right,11,,Manchester United|Nottingham Forest|Newcastle United,27,5,2022,2025
-Alexander Isak,1999,Anfallare,Right,9,,AIK|Borussia Dortmund|Willem II|Real Sociedad|Newcastle United|Liverpool FC,56,16,2017,2025
-Viktor Gyökeres,1998,Anfallare,Right,17,,Brommapojkarna|Brighton & Hove Albion|Swansea City|Coventry City|Sporting CP|Arsenal FC,31,18,2019,2025
-Viktor Claesson,1992,Mittfältare,Right,7,,IFK Värnamo|IF Elfsborg|Krasnodar|FC Copenhagen,74,15,2012,2023
-Zlatan Ibrahimović,1981,Anfallare,Right,11,,Malmö FF|Ajax|Juventus|Inter Milan|Barcelona|AC Milan|Paris Saint-Germain|Manchester United|LA Galaxy,122,62,2001,2023
+Robin Olsen,1990,Målvakt,Höger,1,,Malmö FF|FC Copenhagen|PAOK|AS Roma|Cagliari|Everton|Sheffield United|Aston Villa,79,0,2015,2025
+Kristoffer Nordfeldt,1989,Målvakt,Höger,23,,Brommapojkarna|SC Heerenveen|Swansea City|Gençlerbirliği|AIK,19,0,2011,2023
+Victor Lindelöf,1994,Mittback,Höger,3,,Västerås SK|Benfica|Manchester United|Aston Villa,74,3,2016,2025
+Carl Starfelt,1995,Mittback,Höger,6,,Brommapojkarna|IF Brommapojkarna|Degerfors IF|IFK Göteborg|Rubin Kazan|Celtic|Celta de Vigo,16,0,2020,2025
+Gabriel Gudmundsson,1999,Vänsterback,Vänster,5,,Halmstads BK|FC Groningen|Lille|Leeds United,22,0,2022,2025
+Emil Krafth,1994,Högerback,Höger,2,,Östers IF|Helsingborgs IF|Bologna|Amiens|Newcastle United,52,0,2014,2025
+Jesper Karlström,1995,Mittfältare,Höger,16,,Brommapojkarna|Djurgården|Lech Poznań|Udinese,22,0,2018,2025
+Mattias Svanberg,1999,Mittfältare,Höger,15,,Malmö FF|Bologna|VfL Wolfsburg,36,2,2019,2025
+Dejan Kulusevski,2000,Mittfältare,Vänster,21,,Atalanta|Parma|Juventus|Tottenham Hotspur,45,5,2019,2024
+Emil Forsberg,1991,Mittfältare,Höger,10,,GIF Sundsvall|Malmö FF|RB Leipzig|New York Red Bulls,92,21,2014,2025
+Anthony Elanga,2002,Högerytter,Höger,11,,Manchester United|Nottingham Forest|Newcastle United,27,5,2022,2025
+Alexander Isak,1999,Anfallare,Höger,9,,AIK|Borussia Dortmund|Willem II|Real Sociedad|Newcastle United|Liverpool FC,56,16,2017,2025
+Viktor Gyökeres,1998,Anfallare,Höger,17,,Brommapojkarna|Brighton & Hove Albion|Swansea City|Coventry City|Sporting CP|Arsenal FC,31,18,2019,2025
+Isak Hien,1999,Mittback,Höger,4,,Vasalund|Djurgården|Hellas Verona|Atalanta,27,0,2022,2026
+Daniel Svensson,2002,Vänsterback,Vänster,8,,Irsta IF|Skiljebo SK|Brommapojkarna|Nordsjælland|Borussia Dortmund,11,0,2024,2026
+Yasin Ayari,2003,Mittfältare,Höger,18,,AIK|Brighton & Hove Albion|Coventry City|Blackburn Rovers,19,3,2023,2026
+Hugo Larsson,2004,Mittfältare,Höger,20,,SoGK Charlo|Ystads IF|Malmö FF|Eintracht Frankfurt,12,0,2023,2026
+Viktor Claesson,1992,Mittfältare,Höger,7,,IFK Värnamo|IF Elfsborg|Krasnodar|FC Copenhagen,74,15,2012,2023
+Zlatan Ibrahimović,1981,Anfallare,Höger,11,,Malmö FF|Ajax|Juventus|Inter Milan|Barcelona|AC Milan|Paris Saint-Germain|Manchester United|LA Galaxy,122,62,2001,2023
+Andreas Isaksson,1981,Målvakt,Höger,1,,Trelleborgs FF|Juventus|Djurgårdens IF|Rennes|Manchester City|PSV|Kasımpaşa,133,0,2002,2016
+Olof Mellberg,1977,Mittback,Höger,4,,Degerfors IF|AIK|Racing Santander|Aston Villa|Juventus|Olympiacos|FC Copenhagen,117,8,2000,2012
+Andreas Granqvist,1985,Mittback,Höger,4,,Helsingborgs IF|Wigan Athletic|Groningen|Genoa|Krasnodar,88,9,2006,2019
+Sebastian Larsson,1985,Mittfältare,Höger,7,,IFK Eskilstuna|Arsenal|Birmingham City|Sunderland|Hull City|AIK,133,10,2008,2021
+Kim Källström,1982,Mittfältare,Vänster,9,,BK Häcken|Djurgårdens IF|Rennes|Lyon|Spartak Moscow|Arsenal|Grasshoppers,131,16,2001,2016
+Freddie Ljungberg,1977,Ytter,Höger,9,,Halmstads BK|Arsenal|West Ham United|Seattle Sounders FC|Chicago Fire|Celtic|Shimizu S-Pulse|Mumbai City,75,14,1998,2008
+Henrik Larsson,1971,Anfallare,Höger,11,,Högaborgs BK|Helsingborgs IF|Feyenoord|Celtic|Barcelona|Manchester United|Råå IF,106,37,1993,2009
+Marcus Berg,1986,Anfallare,Höger,9,,Torsby IF|IFK Göteborg|Groningen|Hamburger SV|PSV|Panathinaikos|Al Ain|Krasnodar,90,24,2008,2021
+Albin Ekdal,1989,Mittfältare,Höger,8,,Brommapojkarna|Juventus|Siena|Bologna|Cagliari|Hamburger SV|Sampdoria|Spezia|Djurgårdens IF,70,0,2011,2023
+Mikael Lustig,1986,Högerback,Höger,2,,Umeå FC|GIF Sundsvall|Rosenborg BK|Celtic|Gent|AIK,94,6,2008,2021
+Oscar Hiljemark,1992,Mittfältare,Höger,15,,IF Elfsborg|PSV|Palermo|Genoa|Panathinaikos|Dynamo Moscow|AaB,28,2,2012,2020
+Anders Svensson,1976,Mittfältare,Höger,8,,IF Elfsborg|Southampton,148,21,1999,2013
+Johan Elmander,1981,Anfallare,Höger,11,,Holmalunds IF|Örgryte IS|Feyenoord|Djurgårdens IF|NAC Breda|Brøndby IF|Toulouse|Bolton Wanderers|Galatasaray|Norwich City,85,20,2002,2015
+Pontus Wernbloom,1986,Mittfältare,Höger,16,,IK Kongahälla|IFK Göteborg|AZ|CSKA Moscow|PAOK,51,2,2007,2016
+Tobias Hysén,1982,Anfallare,Höger,14,,Lundby IF|BK Häcken|Djurgårdens IF|Sunderland|IFK Göteborg|Shanghai SIPG|Kungsbacka City|Tvååkers IF,34,10,2005,2014
+Marcus Allbäck,1973,Anfallare,Höger,20,,Örgryte IS|Lyngby BK|Bari|Heerenveen|Aston Villa|Hansa Rostock|FC Copenhagen,74,30,1999,2008
+Ola Toivonen,1986,Anfallare,Höger,20,,Degerfors IF|Örgryte IS|Malmö FF|PSV|Rennes|Sunderland|Toulouse|Melbourne Victory,64,14,2007,2018
+Christian Wilhelmsson,1979,Ytter,Höger,21,,Mjällby AIF|Stabæk|Anderlecht|Nantes|Roma|Bolton Wanderers|Deportivo La Coruña|Al-Hilal|Al Ahli|LA Galaxy|Baniyas|Mjällby AIF|Torsby IF,79,9,2001,2012
+Teddy Lučić,1973,Mittback,Vänster,4,,Lundby IF|Västra Frölunda IF|IFK Göteborg|Bologna|AIK|Leeds United|Bayer Leverkusen|BK Häcken|IF Elfsborg|KF Velebit|Holmalunds IF,86,0,1995,2006
+Rasmus Elm,1988,Mittfältare,Vänster,6,,Kalmar FF|AZ|CSKA Moscow|Kalmar FF,39,4,2009,2013
+Jimmy Durmaz,1989,Mittfältare,Vänster,21,,BK Forward|Malmö FF|Gençlerbirliği|Olympiacos|Toulouse|Galatasaray|Fatih Karagümrük|AIK|Gençlerbirliği|Etimesgutspor|Östertälje FC,49,3,2011,2019
+Marcus Rohdén,1991,Mittfältare,Höger,19,,Hössna IF|IF Elfsborg|Skövde AIK|Crotone|Frosinone|Fatih Karagümrük|AEK Larnaca,19,2,2015,2023
+John Guidetti,1992,Anfallare,Höger,11,,IF Brommapojkarna|Manchester City|Burnley|Feyenoord|Stoke City|Celtic|Celta Vigo|Alavés|Hannover 96|AIK|Rinkeby United,29,3,2012,2020
+Mikael Nilsson,1978,Högerback,Höger,2,,Ovesholms IF|Åhus Horna BK|Halmstads BK|Southampton|Panathinaikos|Brøndby IF|Fremad Amager,64,3,2002,2009
+Niclas Alexandersson,1971,Högerytter,Höger,7,,Halmstads BK|IFK Göteborg|Sheffield Wednesday|Everton|West Ham United|IFK Göteborg|Västra Frölunda,109,7,1993,2008
+Jonas Olsson,1983,Mittback,Höger,13,,Landskrona BoIS|NEC Nijmegen|West Bromwich Albion|Djurgårdens IF|Wigan Athletic,25,1,2010,2015
+Daniel Andersson,1977,Mittfältare,Höger,19,,Malmö FF|Bari|Venezia|Chievo|Ancona|Malmö FF,74,0,1997,2009
+Markus Rosenberg,1982,Anfallare,Höger,22,,Malmö FF|Halmstads BK|Ajax|Werder Bremen|Racing Santander|West Bromwich Albion|Malmö FF,33,6,2005,2012
+Tobias Linderoth,1979,Mittfältare,Höger,6,,IFK Hässleholm|IF Elfsborg|Stabæk|Everton|FC Copenhagen|Galatasaray,76,2,1999,2008
+Erik Edman,1978,Vänsterback,Vänster,5,,Helsingborgs IF|Torino|Karlsruher SC|AIK|Heerenveen|Tottenham Hotspur|Rennes|Wigan Athletic|Helsingborgs IF,57,1,2001,2009
+Petter Hansson,1976,Mittback,Höger,13,,Söderhamns FF|Halmstads BK|SC Heerenveen|Rennes|Monaco|Sunnersta AIF,43,2,2001,2009
+Martin Olsson,1988,Vänsterback,Vänster,5,,Högaborgs BK|Blackburn Rovers|Norwich City|Swansea City|Helsingborgs IF|BK Häcken|Malmö FF,56,5,2010,2023
+Mikael Antonsson,1981,Mittback,Höger,15,,Sillhövda AIK|IFK Göteborg|Austria Wien|Panathinaikos|FC Copenhagen|Bologna|FC Copenhagen|AIK Atlas,28,0,2004,2015
+Behrang Safari,1985,Vänsterback,Vänster,17,,Lunds SK|Malmö FF|FC Basel|Anderlecht|FC Basel|Malmö FF|Lunds SK,31,0,2008,2013
+Emir Bajrami,1988,Ytter,Vänster,19,,Köping FF|IF Elfsborg|Twente|Monaco|Panathinaikos|IF Elfsborg,18,2,2010,2012
+Pontus Jansson,1991,Mittback,Höger,18,,Arlövs BI|Malmö FF|IFK Malmö|Torino|Leeds United|Brentford|Malmö FF,27,0,2012,2020
+Isaac Kiese Thelin,1992,Anfallare,Höger,22,,Karlslunds IF|IFK Norrköping|Malmö FF|Bordeaux|Anderlecht|Waasland-Beveren|Bayer Leverkusen|Malmö FF|Kasımpaşa|Baniyas|Malmö FF|Urawa Red Diamonds,33,5,2014,2024
+Ludwig Augustinsson,1994,Vänsterback,Vänster,6,,IF Brommapojkarna|IFK Göteborg|FC Copenhagen|Werder Bremen|Sevilla|Aston Villa|Mallorca|Anderlecht,56,2,2015,2024
+Robin Quaison,1993,Anfallare,Höger,22,,AIK|Väsby United|Palermo|Mainz 05|Al-Ettifaq|Aris|Gulf United,52,14,2013,2023
+Ken Sema,1993,Ytter,Vänster,15,,IFK Norrköping|IF Sylvia|Ljungskile SK|Östersunds FK|Watford|Udinese|Pafos,32,5,2017,2025
+Gustav Svensson,1987,Mittfältare,Höger,13,,IFK Göteborg|Bursaspor|Tavriya Simferopol|Guangzhou R&F|Seattle Sounders|Guangzhou City|IFK Göteborg,32,0,2009,2021
+Filip Helander,1993,Mittback,Vänster,14,,Malmö FF|Verona|Bologna|Rangers|OB|Omonia|BK Häcken,23,0,2017,2023
+Karl-Johan Johnsson,1990,Målvakt,Höger,12,,Halmstads BK|NEC Nijmegen|Randers|Guingamp|FC Copenhagen|Bordeaux|Strasbourg,9,0,2012,2021
+Marcus Danielson,1989,Mittback,Höger,4,,Skogstorps GoIF|IFK Eskilstuna|Helsingborgs IF|Västerås SK|GIF Sundsvall|Djurgårdens IF|Dalian Professional,19,3,2019,2022
+Kristoffer Olsson,1995,Mittfältare,Höger,20,,IK Sleipner|IFK Norrköping|Arsenal|Midtjylland|AIK|Krasnodar|Anderlecht,47,0,2017,2023
+Jesper Karlsson,1998,Ytter,Höger,14,,IF Böljan|Falkenbergs FF|IF Elfsborg|AZ|Bologna|Lecce|Aberdeen|Utrecht,14,5,2020,2023
+Jens Cajuste,1999,Mittfältare,Höger,8,,Örgryte IS|Midtjylland|Reims|Napoli|Ipswich Town,25,0,2020,2024
+Jordan Larsson,1997,Anfallare,Vänster,16,,Högaborgs BK|Helsingborgs IF|NEC Nijmegen|IFK Norrköping|Spartak Moskva|AIK|Schalke 04|FC Copenhagen,8,1,2018,2025
+Samuel Gustafson,1995,Mittfältare,Höger,17,,Fässbergs IF|BK Häcken|Torino|Perugia|Hellas Verona|Cremonese|BK Häcken|Urawa Red Diamonds,13,0,2022,2024
+Alexander Jeremejeff,1993,Anfallare,Höger,11,,Örgryte IS|Qviding FIF|BK Häcken|Malmö FF|Dynamo Dresden|Twente|Panathinaikos|Levadiakos|PAOK,1,0,2019,2019
+Daniel Sundgren,1990,Högerback,Höger,15,,AIK|Täby IS|Väsby United|Akropolis IF|Arameisk-Syrianska IF|Degerfors IF|Aris|Maccabi Haifa|Volos,3,0,2021,2023
+Emil Holm,2000,Högerback,Höger,7,,Annebergs IF|IFK Göteborg|SønderjyskE|Spezia|Atalanta|Bologna|Juventus,16,2,2022,2025
+Hjalmar Ekdal,1998,Mittback,Höger,5,,IF Brommapojkarna|UNC Wilmington|IK Frej|Assyriska FF|Hammarby IF|IK Sirius|Djurgårdens IF|Burnley|Groningen,11,0,2022,2025
+Joel Andersson,1996,Högerback,Höger,2,,Västra Frölunda IF|BK Häcken|Midtjylland|Ludogorets Razgrad,9,0,2018,2022
+Viktor Johansson,1998,Målvakt,Höger,12,,Stuvsta IF|Hammarby IF|Aston Villa|Alfreton Town|Leicester City|Rotherham United|Stoke City,12,0,2023,2025
+Andreas Linde,1993,Målvakt,Höger,12,,Rydebäcks IF|Helsingborgs IF|IFK Värnamo|Molde|Greuther Fürth|BK Häcken,1,0,2017,2017
+Jacob Rinne,1993,Målvakt,Vänster,1,,Laxå IF|BK Forward|Örebro SK|Gent|AaB|Al-Fateh|Djurgårdens IF,3,0,2016,2019
+Leopold Wahlstedt,1999,Målvakt,Höger,1,,Dalkurd FF|Arendal|Odd|Blackburn Rovers|AGF|Rosenborg,1,0,2023,2023
+Mattias Johansson,1992,Högerback,Höger,13,,IF Hallby|Kalmar FF|AZ|Panathinaikos|Gençlerbirliği|Legia Warszawa|IFK Göteborg|AEL|Niki Volos|Jönköpings Södra,8,1,2014,2021
+Alexander Milošević,1992,Mittback,Höger,14,,Vasalunds IF|AIK|Beşiktaş|Hannover 96|Darmstadt 98|Çaykur Rizespor|Nottingham Forest|Vejle BK|Portsmouth,9,0,2013,2022
+Christoffer Nyman,1992,Anfallare,Höger,9,,IFK Norrköping|IF Sylvia|Eintracht Braunschweig,11,2,2013,2023
+Oscar Linnér,1997,Målvakt,Höger,12,,Stocksunds IF|FC Djursholm|AIK|Arminia Bielefeld|Brescia|Brommapojkarna|Vendsyssel|Petrolul Ploiești|KTP,1,0,2019,2019
+Adam Andersson,1996,Vänsterback,Höger,15,,Västra Frölunda|BK Häcken|Rosenborg|Randers|Lyngby|AaB,4,0,2019,2020
+Jonathan Augustinsson,1996,Vänsterback,Vänster,21,,IF Brommapojkarna|Djurgårdens IF|Rosenborg,1,0,2019,2019
+Riccardo Gagliolo,1990,Vänsterback,Vänster,17,,Andora|Sanremese|Pro Imperia|Carpi|Parma|Salernitana|Reggina|AEK Larnaca|Ascoli,1,0,2019,2019
+Filip Dagerstål,1997,Mittback,Höger,5,,IFK Norrköping|IF Sylvia|FC Khimki|Lech Poznań,2,0,2017,2019
+Kerim Mrabti,1994,Mittfältare,Höger,13,,Enköpings SK|IK Sirius|Djurgårdens IF|Birmingham City|Mechelen,3,0,2016,2018

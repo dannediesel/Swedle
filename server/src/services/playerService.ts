@@ -95,3 +95,15 @@ export async function searchPlayers(query: string): Promise<Player[]> {
     player.fullName.toLowerCase().includes(normalizedQuery)
   );
 }
+
+export async function getPlayerById(id: number): Promise<Player | undefined> {
+  const players = await getAllPlayers();
+  return players.find((player) => player.id === id);
+}
+
+export async function getPlayerByFullName(fullName: string): Promise<Player | undefined> {
+  const players = await getAllPlayers();
+  return players.find(
+    (player) => player.fullName.toLowerCase() === fullName.toLowerCase()
+  );
+}
