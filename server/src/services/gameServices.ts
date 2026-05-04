@@ -1,10 +1,13 @@
 import { Player } from "../types/player";
 import { getPlayerByFullName, getPlayerById } from "./playerService";
 
+// Temporary MVP target. Later this should come from DailyChallenge in the database.
 const TARGET_PLAYER_NAME = "John Guidetti";
 
+// These statuses tell the frontend how to color a cell or show higher/lower hints.
 type ComparisonStatus = "correct" | "incorrect" | "higher" | "lower" | "partial";
 
+// Complete response shape returned after a user submits one guess.
 type GuessResult = {
   guessedPlayer: Player;
   isCorrect: boolean;
@@ -20,10 +23,12 @@ type GuessResult = {
   };
 };
 
+// Text fields are currently compared by exact match.
 function compareText(guessed: string, target: string): ComparisonStatus {
   return guessed === target ? "correct" : "incorrect";
 }
 
+// Numeric clues can be exact, or tell the user whether the target value is higher or lower.
 function compareNullableNumber(
   guessed: number | null,
   target: number | null
@@ -39,6 +44,8 @@ function compareNullableNumber(
   return guessed < target ? "higher" : "lower";
 }
 
+// Normalize club names so small spelling differences do not block a reasonable match.
+// For example, accents and common club suffixes like IF/FF/FK are ignored.
 function normalizeClubName(club: string): string {
   return club
     .normalize("NFD")
@@ -51,6 +58,7 @@ function normalizeClubName(club: string): string {
     .trim();
 }
 
+// Club feedback is partial when the guessed player and target player share at least one club.
 function compareClubLists(guessedClubs: string[], targetClubs: string[]): ComparisonStatus {
   const guessedSet = new Set(
     guessedClubs.map(normalizeClubName).filter((club) => club.length > 0)
@@ -62,6 +70,8 @@ function compareClubLists(guessedClubs: string[], targetClubs: string[]): Compar
   return hasMatch ? "partial" : "incorrect";
 }
 
+// Main game logic for a guess.
+// It loads the guessed player, loads the target player, and compares each clue field.
 export async function evaluateGuess(playerId: number): Promise<GuessResult> {
   const guessedPlayer = await getPlayerById(playerId);
   const targetPlayer = await getPlayerByFullName(TARGET_PLAYER_NAME);

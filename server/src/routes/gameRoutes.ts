@@ -3,10 +3,13 @@ import { evaluateGuess } from "../services/gameServices";
 
 const router = express.Router();
 
+// POST /api/game/guess
+// Receives the guessed player id and returns feedback for each clue category.
 router.post("/guess", async (req, res) => {
   try {
     const { playerId } = req.body;
 
+    // The service expects a numeric id, so reject malformed requests early.
     if (typeof playerId !== "number") {
       return res.status(400).json({ error: "playerId must be a number" });
     }
