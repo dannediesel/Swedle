@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
+// Same player shape that the backend returns from /api/players and /api/players/search.
 type Player = {
   id: number;
   fullName: string;
@@ -16,8 +17,11 @@ type Player = {
   ntEndYear: number;
 };
 
+// Feedback statuses from the backend.
+// The frontend uses these values to decide colors and higher/lower arrows.
 type ComparisonStatus = "correct" | "incorrect" | "higher" | "lower" | "partial";
 
+// Response shape returned after submitting a guess to /api/game/guess.
 type GuessResult = {
   guessedPlayer: Player;
   isCorrect: boolean;
@@ -33,6 +37,7 @@ type GuessResult = {
   };
 };
 
+// General color mapping for comparison cells in the guess table.
 function getStatusStyle(status: ComparisonStatus) {
   switch (status) {
     case "correct":
@@ -48,6 +53,7 @@ function getStatusStyle(status: ComparisonStatus) {
   }
 }
 
+// Club comparison has a special "partial" state when players share at least one club.
 function getClubStatusStyle(status: ComparisonStatus) {
   if (status === "correct") {
     return { backgroundColor: "#2e7d32", color: "white" };
@@ -60,6 +66,7 @@ function getClubStatusStyle(status: ComparisonStatus) {
   return { backgroundColor: "#c62828", color: "white" };
 }
 
+// Some columns should only show green for exact matches and red otherwise.
 function getStrictStatusStyle(status: ComparisonStatus) {
   if (status === "correct") {
     return { backgroundColor: "#2e7d32", color: "white" };
@@ -68,6 +75,7 @@ function getStrictStatusStyle(status: ComparisonStatus) {
   return { backgroundColor: "#c62828", color: "white" };
 }
 
+// Adds arrows to numeric clues when the target value is higher or lower than the guess.
 function formatNumberWithHint(value: number | null, status: ComparisonStatus) {
   if (value === null) return "Unknown";
   if (status === "higher") return `${value} ↑`;
@@ -76,12 +84,22 @@ function formatNumberWithHint(value: number | null, status: ComparisonStatus) {
 }
 
 function App() {
+  // Text currently typed into the autocomplete input.
   const [query, setQuery] = useState("");
+
+  // Search suggestions returned from the backend.
   const [results, setResults] = useState<Player[]>([]);
+
+  // Submitted guesses, newest first, shown in the feedback table.
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
+
+  // Simple user-facing error message for failed API calls.
   const [error, setError] = useState("");
+
+  // Which autocomplete suggestion is highlighted for keyboard navigation.
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
+  // Refs to suggestion elements, used to keep the selected suggestion visible while arrowing.
   const itemRefs = useRef<Array<HTMLLIElement | null>>([]);
 
   useEffect(() => {
@@ -91,10 +109,12 @@ function App() {
       return;
     }
 
+    // Debounce search so the app does not call the backend on every single keystroke.
     const timeoutId = setTimeout(() => {
       fetch(`http://localhost:3000/api/players/search?q=${encodeURIComponent(query)}`)
         .then((response) => response.json())
         .then((data) => {
+          // Select the first result by default so Enter can submit it immediately.
           setResults(data);
           setSelectedIndex(data.length > 0 ? 0 : -1);
         })
@@ -107,6 +127,7 @@ function App() {
   }, [query]);
 
   useEffect(() => {
+    // When navigating with arrow keys, scroll the active result into view.
     if (selectedIndex >= 0 && itemRefs.current[selectedIndex]) {
       itemRefs.current[selectedIndex]?.scrollIntoView({
         block: "nearest",
@@ -118,6 +139,7 @@ function App() {
     try {
       setError("");
 
+      // Send only the player id; the backend owns the target-player logic and feedback rules.
       const response = await fetch("http://localhost:3000/api/game/guess", {
         method: "POST",
         headers: {
@@ -128,6 +150,7 @@ function App() {
 
       const data: GuessResult = await response.json();
 
+      // Add the new guess at the top and reset the autocomplete state.
       setGuesses((previous) => [data, ...previous]);
       setQuery("");
       setResults([]);
@@ -140,6 +163,7 @@ function App() {
   function handleInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (results.length === 0) return;
 
+    // Move the highlighted suggestion down without moving the text cursor.
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setSelectedIndex((prev) => {
@@ -149,6 +173,7 @@ function App() {
       return;
     }
 
+    // Move the highlighted suggestion up without moving the text cursor.
     if (event.key === "ArrowUp") {
       event.preventDefault();
       setSelectedIndex((prev) => {
@@ -158,6 +183,7 @@ function App() {
       return;
     }
 
+    // Enter submits the highlighted suggestion, or an exact name match as fallback.
     if (event.key === "Enter") {
       event.preventDefault();
 
@@ -176,6 +202,7 @@ function App() {
       return;
     }
 
+    // Escape closes the suggestion list.
     if (event.key === "Escape") {
       setResults([]);
       setSelectedIndex(-1);
@@ -265,8 +292,10 @@ function App() {
         </div>
       </div>
 
+      {/* API errors are shown near the search area so the user sees what failed. */}
       {error && <p style={{ marginTop: "1rem", color: "#ff6b6b" }}>{error}</p>}
 
+      {/* The table appears only after the first guess has been submitted. */}
       {guesses.length > 0 && (
         <div style={{ marginTop: "2rem", overflowX: "auto" }}>
           <table

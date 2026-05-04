@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import playerRoutes from "./routes/playerRoutes";
 import gameRoutes from "./routes/gameRoutes";
+import authRoutes from "./routes/authRoutes";
 
 const app = express();
 
@@ -14,5 +15,5 @@ app.get("/", (_req, res) => {
 
 app.use("/api/players", playerRoutes);
 app.use("/api/game", gameRoutes);
-
+app.use("/api/auth", authRoutes);
 export default app;
