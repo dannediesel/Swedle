@@ -1,20 +1,8 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { User } from "../types/auth";
 import { getCurrentUser, loginUser } from "../api/authApi";
-
-// The values that every component can read from the auth context.
-// This keeps login state in one shared place instead of passing props through the app.
-type AuthContextValue = {
-  user: User | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  refreshUser: () => Promise<void>;
-};
-
-// The context starts as undefined so useAuth can detect missing AuthProvider usage.
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+import { AuthContext } from "./authContextCore";
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -78,16 +66,4 @@ export function AuthProvider({ children }: AuthProviderProps) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-// Small helper hook so components do not have to import/use AuthContext directly.
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  // This gives a clear error if a component calls useAuth outside <AuthProvider>.
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
-  }
-
-  return context;
 }

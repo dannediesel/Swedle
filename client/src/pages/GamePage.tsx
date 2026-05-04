@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { apiRequest } from "../api/client";
+import { useAuth } from "../context/useAuth";
 import "../App.css";
 
 // Same player shape that the backend returns from /api/players and /api/players/search.
@@ -21,7 +24,7 @@ type Player = {
 // The frontend uses these values to decide colors and higher/lower arrows.
 type ComparisonStatus = "correct" | "incorrect" | "higher" | "lower" | "partial";
 
-// Response shape returned after submitting a guess to /api/game/guess.
+// Response shape for one submitted guess.
 type GuessResult = {
   guessedPlayer: Player;
   isCorrect: boolean;
@@ -35,6 +38,14 @@ type GuessResult = {
     nationalTeamCaps: ComparisonStatus;
     nationalTeamGoals: ComparisonStatus;
   };
+};
+
+// Backend state for the logged-in user's daily challenge.
+type DailyGameState = {
+  sessionId: string;
+  status: "IN_PROGRESS" | "SOLVED" | "FAILED";
+  attempts: number;
+  guesses: GuessResult[];
 };
 
 // General color mapping for comparison cells in the guess table.
@@ -84,6 +95,8 @@ function formatNumberWithHint(value: number | null, status: ComparisonStatus) {
 }
 
 function GamePage() {
+  const { user } = useAuth();
+
   // Text currently typed into the autocomplete input.
   const [query, setQuery] = useState("");
 
@@ -99,20 +112,67 @@ function GamePage() {
   // Which autocomplete suggestion is highlighted for keyboard navigation.
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
+  // Current status of the logged-in user's daily game.
+  const [gameStatus, setGameStatus] = useState<DailyGameState["status"]>("IN_PROGRESS");
+
+  // Remembers which user's daily state has been loaded into this page.
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
+
   // Refs to suggestion elements, used to keep the selected suggestion visible while arrowing.
   const itemRefs = useRef<Array<HTMLLIElement | null>>([]);
+  const trimmedQuery = query.trim();
+
+  // Hide old guesses until the current user's daily game has finished loading.
+  const isGameStateLoaded = Boolean(user && loadedUserId === user.id);
+  const currentGameStatus = isGameStateLoaded ? gameStatus : "IN_PROGRESS";
+  const visibleGuesses = isGameStateLoaded ? guesses : [];
+  const visibleResults = user && trimmedQuery ? results : [];
+
+  function applyGameState(data: DailyGameState) {
+    setGuesses([...data.guesses].reverse());
+    setGameStatus(data.status);
+  }
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      setSelectedIndex(-1);
+    if (!user) {
+      return;
+    }
+
+    let isCurrentRequest = true;
+
+    // Load the user's current game state, including all previous guesses, when the page loads.
+    apiRequest<DailyGameState>("/api/game/daily")
+      .then((data) => {
+        // Ignore late responses if the user changed while the request was still running.
+        if (!isCurrentRequest) {
+          return;
+        }
+
+        applyGameState(data);
+        setLoadedUserId(user.id);
+      })
+      .catch(() => {
+        // Ignore errors from an old request after the effect has cleaned up.
+        if (!isCurrentRequest) {
+          return;
+        }
+
+        setError("Could not load daily game");
+      });
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!trimmedQuery) {
       return;
     }
 
     // Debounce search so the app does not call the backend on every single keystroke.
     const timeoutId = setTimeout(() => {
-      fetch(`http://localhost:3000/api/players/search?q=${encodeURIComponent(query)}`)
-        .then((response) => response.json())
+      apiRequest<Player[]>(`/api/players/search?q=${encodeURIComponent(trimmedQuery)}`)
         .then((data) => {
           // Select the first result by default so Enter can submit it immediately.
           setResults(data);
@@ -124,7 +184,7 @@ function GamePage() {
     }, 250);
 
     return () => clearTimeout(timeoutId);
-  }, [query]);
+  }, [trimmedQuery]);
 
   useEffect(() => {
     // When navigating with arrow keys, scroll the active result into view.
@@ -136,38 +196,57 @@ function GamePage() {
   }, [selectedIndex]);
 
   async function handleGuess(player: Player) {
+    if (!user) {
+      setError("You need to log in before guessing.");
+      return;
+    }
+
+    if (currentGameStatus === "SOLVED") {
+      setError("You have already solved today's challenge.");
+      return;
+    }
+
+    if (currentGameStatus !== "IN_PROGRESS") {
+      setError("Today's challenge is finished.");
+      return;
+    }
+
     try {
       setError("");
 
-      // Send only the player id; the backend owns the target-player logic and feedback rules.
-      const response = await fetch("http://localhost:3000/api/game/guess", {
+      // Send only the player id; the backend owns session storage and feedback rules.
+      const data = await apiRequest<DailyGameState>("/api/game/daily/guess", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ playerId: player.id }),
       });
 
-      const data: GuessResult = await response.json();
-
-      // Add the new guess at the top and reset the autocomplete state.
-      setGuesses((previous) => [data, ...previous]);
+      // The backend returns the full updated daily game state after the guess.
+      applyGameState(data);
       setQuery("");
       setResults([]);
       setSelectedIndex(-1);
     } catch {
-      setError("Could not submit guess");
+      setError("Could not submit guess. The player may already have been guessed.");
+    }
+  }
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+
+    if (!value.trim()) {
+      setResults([]);
+      setSelectedIndex(-1);
     }
   }
 
   function handleInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (results.length === 0) return;
+    if (visibleResults.length === 0) return;
 
     // Move the highlighted suggestion down without moving the text cursor.
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setSelectedIndex((prev) => {
-        if (prev < results.length - 1) return prev + 1;
+        if (prev < visibleResults.length - 1) return prev + 1;
         return prev;
       });
       return;
@@ -187,12 +266,12 @@ function GamePage() {
     if (event.key === "Enter") {
       event.preventDefault();
 
-      if (selectedIndex >= 0 && results[selectedIndex]) {
-        handleGuess(results[selectedIndex]);
+      if (selectedIndex >= 0 && visibleResults[selectedIndex]) {
+        handleGuess(visibleResults[selectedIndex]);
         return;
       }
 
-      const exactMatch = results.find(
+      const exactMatch = visibleResults.find(
         (player) => player.fullName.toLowerCase() === query.trim().toLowerCase()
       );
 
@@ -219,10 +298,22 @@ function GamePage() {
           marginBottom: "2rem",
         }}
       >
-        <h1 style={{ marginBottom: "0.5rem" }}>Swedle</h1>
+        <h1 style={{ marginBottom: "1rem" }}>Swedle</h1>
         <p style={{ marginBottom: "2rem" }}>
           Gissa den gömda svenska landslagsspelaren!
         </p>
+
+        {!user && (
+          <p style={{ color: "#f9a825" }}>
+            Du måste <Link to="/login">logga in</Link> för att spela.
+          </p>
+        )}
+
+        {currentGameStatus === "SOLVED" && (
+          <p style={{ marginTop: "1rem", color: "#4ade80", fontWeight: "bold" }}>
+            Bra gissat! Du har löst dagens utmaning.
+          </p>
+        )}
 
         <div style={{ width: "100%", maxWidth: "500px", position: "relative" }}>
           <label
@@ -240,10 +331,11 @@ function GamePage() {
             id="player-search"
             type="text"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => handleQueryChange(event.target.value)}
             onKeyDown={handleInputKeyDown}
             placeholder="Skriv spelarens namn..."
             autoComplete="off"
+            disabled={!user || currentGameStatus !== "IN_PROGRESS"}
             style={{
               display: "block",
               width: "100%",
@@ -253,7 +345,7 @@ function GamePage() {
             }}
           />
 
-          {results.length > 0 && (
+          {user && visibleResults.length > 0 && currentGameStatus === "IN_PROGRESS" && (
             <ul
               style={{
                 marginTop: "0.5rem",
@@ -266,7 +358,7 @@ function GamePage() {
                 backgroundColor: "#111",
               }}
             >
-              {results.map((player, index) => (
+              {visibleResults.map((player, index) => (
                 <li
                   key={player.id}
                   ref={(element) => {
@@ -296,7 +388,7 @@ function GamePage() {
       {error && <p style={{ marginTop: "1rem", color: "#ff6b6b" }}>{error}</p>}
 
       {/* The table appears only after the first guess has been submitted. */}
-      {guesses.length > 0 && (
+      {visibleGuesses.length > 0 && (
         <div style={{ marginTop: "2rem", overflowX: "auto" }}>
           <table
             style={{
@@ -318,7 +410,7 @@ function GamePage() {
               </tr>
             </thead>
             <tbody>
-              {guesses.map((guess, index) => (
+              {visibleGuesses.map((guess, index) => (
                 <tr key={`${guess.guessedPlayer.id}-${index}`}>
                   <td style={{ ...getStatusStyle(guess.comparisons.fullName), padding: "0.75rem" }}>
                     {guess.guessedPlayer.fullName}

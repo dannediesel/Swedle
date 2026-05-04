@@ -1,5 +1,5 @@
 import { Link, Navigate, Route, Routes } from "react-router-dom";
-import { useAuth } from "./context/authContext";
+import { useAuth } from "./context/useAuth";
 import GamePage from "./pages/GamePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";

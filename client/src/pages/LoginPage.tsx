@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/authContext";
+import { useAuth } from "../context/useAuth";
 
 // Login page for existing users.
 // It collects email/password, calls the shared auth context, and redirects after success.
