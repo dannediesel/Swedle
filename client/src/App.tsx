@@ -3,6 +3,7 @@ import { useAuth } from "./context/useAuth";
 import GamePage from "./pages/GamePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import StatsPage from "./pages/StatsPage";
 import "./App.css";
 
 // Top-level React component for the frontend.
@@ -31,6 +32,7 @@ function App() {
       >
         <div style={{ display: "flex", gap: "1rem" }}>
           <Link to="/">Spel</Link>
+          <Link to="/stats">Stats</Link>
         </div>
 
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
@@ -55,8 +57,11 @@ function App() {
         <Route path="/" element={<GamePage />} />
 
         {/* Logged-in users should not see login/register again, so redirect them home. */}
+        <Route path="/" element={<GamePage />} />
+        <Route path="/stats" element={<StatsPage />} />
         <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />
+        
       </Routes>
     </div>
   );

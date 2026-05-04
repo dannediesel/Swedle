@@ -3,6 +3,7 @@ import cors from "cors";
 import playerRoutes from "./routes/playerRoutes";
 import gameRoutes from "./routes/gameRoutes";
 import authRoutes from "./routes/authRoutes";
+import statsRoutes from "./routes/statsRoute";
 
 // Create the Express application.
 // server.ts imports this app and is responsible for starting the HTTP server.
@@ -23,5 +24,5 @@ app.get("/", (_req, res) => {
 app.use("/api/players", playerRoutes);
 app.use("/api/game", gameRoutes);
 app.use("/api/auth", authRoutes);
-
+app.use("/api/stats", statsRoutes);
 export default app;

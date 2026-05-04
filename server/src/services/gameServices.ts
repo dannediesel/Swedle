@@ -4,7 +4,7 @@ import { Player } from "../types/player";
 import { getPlayerByFullName, getPlayerById } from "./playerService";
 
 // Temporary MVP target. Later this should come from DailyChallenge in the database.
-const TARGET_PLAYER_NAME = "Dejan Kulusevski";
+const TARGET_PLAYER_NAME = "Andreas Granqvist";
 
 // These statuses tell the frontend how to color a cell or show higher/lower hints.
 type ComparisonStatus = "correct" | "incorrect" | "higher" | "lower" | "partial";
