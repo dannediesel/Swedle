@@ -1,7 +1,7 @@
 import { Player } from "../types/player";
 import { getPlayerByFullName, getPlayerById } from "./playerService";
 
-const TARGET_PLAYER_NAME = "Albin Ekdal";
+const TARGET_PLAYER_NAME = "John Guidetti";
 
 type ComparisonStatus = "correct" | "incorrect" | "higher" | "lower" | "partial";
 
@@ -39,9 +39,25 @@ function compareNullableNumber(
   return guessed < target ? "higher" : "lower";
 }
 
+function normalizeClubName(club: string): string {
+  return club
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\b(if|ff|fk|sk|bk|fc|cf|afc|ac|sc|ik|gif|goif|bois)\b/g, " ")
+    .replace(/\bdjurgardens\b/g, "djurgarden")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function compareClubLists(guessedClubs: string[], targetClubs: string[]): ComparisonStatus {
-  const guessedSet = new Set(guessedClubs.map((club) => club.toLowerCase()));
-  const hasMatch = targetClubs.some((club) => guessedSet.has(club.toLowerCase()));
+  const guessedSet = new Set(
+    guessedClubs.map(normalizeClubName).filter((club) => club.length > 0)
+  );
+  const hasMatch = targetClubs
+    .map(normalizeClubName)
+    .some((club) => club.length > 0 && guessedSet.has(club));
 
   return hasMatch ? "partial" : "incorrect";
 }
