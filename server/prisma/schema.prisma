@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum GameMode {
+  DAILY
+  FRIEND_CHALLENGE
+  PRACTICE
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  SOLVED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  gameSessions            GameSession[]
+  createdFriendChallenges FriendChallenge[]        @relation("CreatedFriendChallenges")
+  friendChallengeAttempts FriendChallengeAttempt[]
+}
+
+model DailyChallenge {
+  id               String   @id @default(uuid())
+  date             DateTime @unique
+  targetPlayerName String
+  createdAt        DateTime @default(now())
+
+  gameSessions GameSession[]
+}
+
+model GameSession {
+  id               String        @id @default(uuid())
+  userId           String
+  mode             GameMode
+  status           SessionStatus @default(IN_PROGRESS)
+  targetPlayerName String
+  attempts         Int           @default(0)
+  completedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  dailyChallengeId String?
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyChallenge   DailyChallenge? @relation(fields: [dailyChallengeId], references: [id])
+  guesses          Guess[]
+
+  friendChallengeAttempts FriendChallengeAttempt[]
+
+  @@index([userId])
+  @@index([dailyChallengeId])
+}
+
+model Guess {
+  id               String   @id @default(uuid())
+  gameSessionId    String
+  guessedPlayerName String
+  guessOrder       Int
+  createdAt        DateTime @default(now())
+
+  gameSession GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+
+  @@index([gameSessionId])
+}
+
+model FriendChallenge {
+  id               String   @id @default(uuid())
+  creatorId        String
+  challengeCode    String   @unique
+  targetPlayerName String
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime?
+
+  creator User @relation("CreatedFriendChallenges", fields: [creatorId], references: [id], onDelete: Cascade)
+  attempts FriendChallengeAttempt[]
+
+  @@index([creatorId])
+}
+
+model FriendChallengeAttempt {
+  id                String   @id @default(uuid())
+  friendChallengeId String
+  userId            String
+  gameSessionId     String
+  createdAt         DateTime @default(now())
+
+  friendChallenge FriendChallenge @relation(fields: [friendChallengeId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameSession     GameSession     @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([friendChallengeId, userId])
+  @@index([userId])
+  @@index([gameSessionId])
+}

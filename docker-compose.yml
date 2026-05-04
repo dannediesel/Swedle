@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: swedle-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: swedle
+      POSTGRES_PASSWORD: swedle_password
+      POSTGRES_DB: swedle_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - swedle_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  swedle_postgres_data:
