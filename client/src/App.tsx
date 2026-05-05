@@ -16,37 +16,51 @@ function App() {
 
   // Avoid rendering routes before we know whether the user already has a valid token.
   if (isLoading) {
-    return <p style={{ padding: "2rem" }}>Loading...</p>;
+    return <p className="page">Laddar...</p>;
   }
 
   return (
-    <div>
-      <nav
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "1rem 2rem",
-          borderBottom: "1px solid #333",
-        }}
-      >
-        <div style={{ display: "flex", gap: "1rem" }}>
-          <Link to="/">Spel</Link>
-          <Link to="/stats">Stats</Link>
+    <div className="app-shell">
+      <div className="match-background" aria-hidden="true">
+        <div className="match-pitch">
+          <span className="player player-home p1" />
+          <span className="player player-home p2" />
+          <span className="player player-home p3" />
+          <span className="player player-home p4" />
+          <span className="player player-home p5" />
+          <span className="player player-home p6" />
+          <span className="player player-away p7" />
+          <span className="player player-away p8" />
+          <span className="player player-away p9" />
+          <span className="player player-away p10" />
+          <span className="player player-away p11" />
+          <span className="player player-away p12" />
+          <span className="match-ball" />
+        </div>
+      </div>
+
+      <nav className="topbar">
+        <div className="nav-group">
+          <Link className="brand" to="/">
+            <span className="brand-mark" aria-hidden="true" />
+            Swedle
+          </Link>
+          <Link className="nav-link" to="/">Spel</Link>
+          <Link className="nav-link" to="/stats">Statistik</Link>
         </div>
 
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+        <div className="auth-group">
           {user ? (
             <>
               {/* Logged-in users see their username and can end the session. */}
-              <span>Inloggad som {user.username}</span>
-              <button onClick={logout}>Logga ut</button>
+              <span className="user-chip">Inloggad som <strong>{user.username}</strong></span>
+              <button className="button" onClick={logout}>Logga ut</button>
             </>
           ) : (
             <>
               {/* Logged-out users can navigate to authentication pages. */}
-              <Link to="/login">Logga in</Link>
-              <Link to="/register">Registrera dig</Link>
+              <Link className="nav-link" to="/login">Logga in</Link>
+              <Link className="button" to="/register">Registrera dig</Link>
             </>
           )}
         </div>

@@ -156,7 +156,7 @@ export default function GamePage() {
       setPracticeSessionId(null);
       applyGameState(data);
     } catch {
-      setError("Could not load daily game");
+      setError("Kunde inte ladda dagens utmaning.");
     }
   }, [applyGameState]);
 
@@ -186,7 +186,7 @@ export default function GamePage() {
           return;
         }
 
-        setError("Could not load daily game");
+        setError("Kunde inte ladda dagens utmaning.");
       });
 
     return () => {
@@ -209,7 +209,7 @@ export default function GamePage() {
           setSelectedIndex(data.length > 0 ? 0 : -1);
         })
         .catch(() => {
-          setError("Could not fetch player search results");
+          setError("Kunde inte hämta spelarsökningen.");
         });
     }, 250);
 
@@ -228,7 +228,7 @@ export default function GamePage() {
   // Create a fresh practice game with a random target player.
   async function startNewPracticeGame() {
     if (!user) {
-      setError("You need to log in before starting practice mode.");
+      setError("Du behöver logga in innan du kan starta träningsläge.");
       return;
     }
 
@@ -243,19 +243,19 @@ export default function GamePage() {
 
       applyGameState(data);
     } catch {
-      setError("Could not start practice game");
+      setError("Kunde inte starta slumpmässigt spel.");
     }
   }
 
   // Submit one guess to whichever mode is currently active.
   async function handleGuess(player: Player) {
     if (!user) {
-      setError("You need to log in before guessing.");
+      setError("Du behöver logga in innan du kan gissa.");
       return;
     }
 
     if (gameStatus === "SOLVED") {
-      setError("This game has already been solved.");
+      setError("Det här spelet är redan löst.");
       return;
     }
 
@@ -279,7 +279,7 @@ export default function GamePage() {
       setResults([]);
       setSelectedIndex(-1);
     } catch {
-      setError("Could not submit guess. The player may already have been guessed.");
+      setError("Kunde inte skicka gissningen. Spelaren kan redan ha gissats.");
     }
   }
 
@@ -390,160 +390,98 @@ export default function GamePage() {
   };
 
   return (
-    <div
-      style={{
-        padding: "1rem",
-        maxWidth: "1200px",
-        margin: "0 auto",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          marginBottom: "2rem",
-        }}
-      >
-        <h1 style={{ marginBottom: "1rem" }}>Swedle</h1>
-        <p style={{ marginBottom: "2rem" }}>
-          Gissa den gömda svenska landsslagspelaren!
-        </p>
-
-        {!user && (
-          <p style={{ color: "#f9a825", marginBottom: "1rem" }}>
-          Du måste <Link to="/login">logga in</Link> för att spela..
+    <div className="page">
+      <div className="hero-panel">
+        <div className="hero-content">
+          <span className="eyebrow">KANNA PÅ, KANNA PÅ!</span>
+          <h1 className="hero-title">Swedle</h1>
+          <p className="hero-copy">
+            Gissa den gömda svenska landsslagspelaren!
           </p>
 
-        )}
-
-        {/* Mode buttons switch between the saved daily game and a new practice session. */}
-        <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem" }}>
-          <button
-            onClick={loadDailyGame}
-            disabled={!user}
-            style={{
-              padding: "0.75rem 1rem",
-              borderRadius: "8px",
-              border: activeMode === "DAILY" ? "2px solid #4ade80" : "1px solid #444",
-            }}
-          >
-            Dagens utmaning
-          </button>
-
-          <button
-            onClick={startNewPracticeGame}
-            disabled={!user}
-            style={{
-              padding: "0.75rem 1rem",
-              borderRadius: "8px",
-              border: activeMode === "PRACTICE" ? "2px solid #4ade80" : "1px solid #444",
-            }}
-          >
-            Slumpmässigt spel
-          </button>
-        </div>
-
-        <p style={{ marginBottom: "1.5rem", color: "#a1a1aa" }}>
-          Valt spelläge: {activeMode === "DAILY" ? "Dagens utmaning" : "Slumpmässigt spel"}
-        </p>
-
-        {/* The backend marks a session as SOLVED after a correct guess. */}
-        {gameStatus === "SOLVED" && (
-          <p style={{ marginTop: "0.5rem", color: "#4ade80", fontWeight: "bold" }}>
-            Bra gissat! Du klarade det på {guesses.length} {guesses.length === 1 ? "försök" : "försök"}.
-          </p>
-        )}
-
-        <div style={{ width: "100%", maxWidth: "500px", position: "relative" }}>
-          <label
-            htmlFor="player-search"
-            style={{
-              display: "block",
-              marginBottom: "0.5rem",
-              textAlign: "left",
-            }}
-          >
-            Sök spelare
-          </label>
-
-          <input
-            id="player-search"
-            type="text"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={handleInputKeyDown}
-            placeholder="Skriv spelarens namn..."
-            autoComplete="off"
-            disabled={inputDisabled}
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "0.9rem 1rem",
-              fontSize: "1rem",
-              borderRadius: "8px",
-              opacity: inputDisabled ? 0.6 : 1,
-            }}
-          />
-
-          {!inputDisabled && visibleResults.length > 0 && (
-            <ul
-              style={{
-                marginTop: "0.5rem",
-                padding: 0,
-                listStyle: "none",
-                border: "1px solid #444",
-                borderRadius: "8px",
-                overflowY: "auto",
-                maxHeight: "260px",
-                backgroundColor: "#111",
-              }}
-            >
-              {visibleResults.map((player, index) => (
-                <li
-                  key={player.id}
-                  ref={(element) => {
-                    itemRefs.current[index] = element;
-                  }}
-                  onClick={() => handleGuess(player)}
-                  style={{
-                    padding: "0.75rem 1rem",
-                    borderBottom: "1px solid #333",
-                    cursor: "pointer",
-                    backgroundColor: selectedIndex === index ? "#1f2937" : "transparent",
-                  }}
-                >
-                  <strong>{player.fullName}</strong>
-                  <div>
-                    {player.primaryPosition} • {player.birthYear ?? "Unknown"} •{" "}
-                    {player.nationalTeamCaps} caps
-                  </div>
-                </li>
-              ))}
-            </ul>
+          {!user && (
+            <p className="notice">
+              Du måste <Link to="/login">logga in</Link> för att spela.
+            </p>
           )}
+
+          {/* Mode buttons switch between the saved daily game and a new practice session. */}
+          <div className="mode-switcher">
+            <button
+              onClick={loadDailyGame}
+              disabled={!user}
+              className={`mode-button ${activeMode === "DAILY" ? "is-active" : ""}`}
+            >
+              Dagens utmaning
+            </button>
+
+            <button
+              onClick={startNewPracticeGame}
+              disabled={!user}
+              className={`mode-button ${activeMode === "PRACTICE" ? "is-active" : ""}`}
+            >
+              Slumpmässigt spel
+            </button>
+          </div>
+
+          <p className="selected-mode">
+            Valt spelläge: {activeMode === "DAILY" ? "Dagens utmaning" : "Slumpmässigt spel"}
+          </p>
+
+          {/* The backend marks a session as SOLVED after a correct guess. */}
+          {gameStatus === "SOLVED" && (
+            <p className="success-message">
+              Bra gissat! Du klarade det på {guesses.length} {guesses.length === 1 ? "försök" : "försök"}.
+            </p>
+          )}
+
+          <div className="search-panel" style={{ position: "relative" }}>
+            <label htmlFor="player-search" className="field-label">
+              Sök spelare
+            </label>
+
+            <input
+              id="player-search"
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={handleInputKeyDown}
+              placeholder="Skriv spelarens namn..."
+              autoComplete="off"
+              disabled={inputDisabled}
+              className="input"
+            />
+
+            {!inputDisabled && visibleResults.length > 0 && (
+              <ul className="suggestion-list">
+                {visibleResults.map((player, index) => (
+                  <li
+                    key={player.id}
+                    ref={(element) => {
+                      itemRefs.current[index] = element;
+                    }}
+                    onClick={() => handleGuess(player)}
+                    className={`suggestion-item ${selectedIndex === index ? "is-selected" : ""}`}
+                  >
+                    <strong>{player.fullName}</strong>
+                    <div className="suggestion-meta">
+                      {player.primaryPosition} • {player.birthYear ?? "Okänt"} •{" "}
+                      {player.nationalTeamCaps} landskamper
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 
       {/* API errors are shown near the search area so the user sees what failed. */}
-      {error && <p style={{ marginTop: "1rem", color: "#ff6b6b" }}>{error}</p>}
+      {error && <p className="error-message">{error}</p>}
 
       {/* The table appears only after the first guess has been submitted. */}
       {visibleGuesses.length > 0 && (
-        <div
-          style={{
-            marginTop: "2rem",
-            width: "100%",
-            padding: "0.75rem",
-            border: "1px solid rgba(96, 165, 250, 0.18)",
-            borderRadius: "14px",
-            background:
-              "linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(8, 13, 24, 0.96) 100%)",
-            boxSizing: "border-box",
-            boxShadow: "0 18px 40px rgba(0, 0, 0, 0.22)",
-          }}
-        >
+        <div className="guess-table-shell">
           <table
             style={{
               width: "100%",

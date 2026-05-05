@@ -35,43 +35,44 @@ export default function RegisterPage() {
   }
 
   return (
-    <div style={{ maxWidth: "420px", margin: "4rem auto", padding: "2rem" }}>
+    <div className="auth-card">
       <h1>Skapa konto</h1>
+      <p className="hero-copy">Spara dina rundor, streaks och framsteg i Swedle.</p>
 
-      <form onSubmit={handleSubmit}>
-        <label>Användarnamn</label>
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <label className="field-label">Användarnamn</label>
         <input
           // Controlled input: React state stores the current username value.
           value={username}
           onChange={(event) => setUsername(event.target.value)}
-          style={{ display: "block", width: "100%", padding: "0.75rem", marginBottom: "1rem" }}
+          className="input"
         />
 
-        <label>E-postadress</label>
+        <label className="field-label">E-postadress</label>
         <input
           // Controlled input: updates email state as the user types.
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           type="email"
-          style={{ display: "block", width: "100%", padding: "0.75rem", marginBottom: "1rem" }}
+          className="input"
         />
 
-        <label>Lösenord</label>
+        <label className="field-label">Lösenord</label>
         <input
           // Controlled input: updates password state as the user types.
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           type="password"
-          style={{ display: "block", width: "100%", padding: "0.75rem", marginBottom: "1rem" }}
+          className="input"
         />
 
-        {error && <p style={{ color: "#ff6b6b" }}>{error}</p>}
+        {error && <p className="error-message">{error}</p>}
 
         {/* Submitting the form triggers handleSubmit above. */}
-        <button type="submit">Skapa konto</button>
+        <button className="button" type="submit">Skapa konto</button>
       </form>
 
-      <p style={{ marginTop: "1rem" }}>
+      <p className="auth-footer">
         Har du redan ett konto? <Link to="/login">Logga in</Link>
       </p>
     </div>

@@ -35,35 +35,36 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ maxWidth: "420px", margin: "4rem auto", padding: "2rem" }}>
+    <div className="auth-card">
       <h1>Logga in</h1>
+      <p className="hero-copy">Fortsätt jakten på dagens svenska landslagsspelare.</p>
 
-      <form onSubmit={handleSubmit}>
-        <label>E-postadress</label>
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <label className="field-label">E-postadress</label>
         <input
           // Controlled input: React state is the source of truth for the email value.
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           type="email"
-          style={{ display: "block", width: "100%", padding: "0.75rem", marginBottom: "1rem" }}
+          className="input"
         />
 
-        <label>Lösenord</label>
+        <label className="field-label">Lösenord</label>
         <input
           // Controlled input: React state is updated on every password change.
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           type="password"
-          style={{ display: "block", width: "100%", padding: "0.75rem", marginBottom: "1rem" }}
+          className="input"
         />
 
-        {error && <p style={{ color: "#ff6b6b" }}>{error}</p>}
+        {error && <p className="error-message">{error}</p>}
 
         {/* Submitting the form triggers handleSubmit above. */}
-        <button type="submit">Logga in</button>
+        <button className="button" type="submit">Logga in</button>
       </form>
 
-      <p style={{ marginTop: "1rem" }}>
+      <p className="auth-footer">
         Inget konto? <Link to="/register">Skapa här</Link>
       </p>
     </div>

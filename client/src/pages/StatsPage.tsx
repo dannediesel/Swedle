@@ -49,7 +49,7 @@ export default function StatsPage() {
 
   if (!user) {
     return (
-      <div style={{ maxWidth: "900px", margin: "3rem auto", padding: "2rem" }}>
+      <div className="stats-page">
         <h1>Statistik</h1>
         <p>
           Du måste <Link to="/login">logga in</Link> för att se din statistik.
@@ -60,7 +60,7 @@ export default function StatsPage() {
 
   if (isLoading) {
     return (
-      <div style={{ maxWidth: "900px", margin: "3rem auto", padding: "2rem" }}>
+      <div className="stats-page">
         <h1>Statistik</h1>
         <p>Laddar statistik...</p>
       </div>
@@ -69,9 +69,9 @@ export default function StatsPage() {
 
   if (error) {
     return (
-      <div style={{ maxWidth: "900px", margin: "3rem auto", padding: "2rem" }}>
+      <div className="stats-page">
         <h1>Statistik</h1>
-        <p style={{ color: "#ff6b6b" }}>{error}</p>
+        <p className="error-message">{error}</p>
       </div>
     );
   }
@@ -81,18 +81,11 @@ export default function StatsPage() {
   }
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "3rem auto", padding: "2rem" }}>
-      <h1> Din statistik</h1>
+    <div className="stats-page">
+      <h1>Din statistik</h1>
       <p>Håll koll på dina prestationer över tid i alla spellägen.</p>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(10px, 1fr))",
-          gap: "1rem",
-          marginTop: "2rem",
-        }}
-      >
+      <div className="stats-grid">
         <StatCard label="Totalt spelade" value={stats.gamesPlayed} />
         <StatCard label="Vinster" value={stats.wins} />
         <StatCard label="Vinstprocent" value={`${stats.winRate}%`} />
@@ -104,12 +97,12 @@ export default function StatsPage() {
         />
       </div>
 
-      <h2 style={{ marginTop: "3rem" }}>Senaste spel</h2>
+      <h2 className="section-title">Senaste spel</h2>
 
       {stats.recentGames.length === 0 ? (
         <p>Inga spel spelade ännu.</p>
       ) : (
-        <div style={{ overflowX: "auto", marginTop: "1rem" }}>
+        <div className="stats-table-shell">
           <table
             style={{
               width: "100%",
@@ -147,16 +140,9 @@ export default function StatsPage() {
 // Small reusable card for one statistic number.
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div
-      style={{
-        border: "1px solid #333",
-        borderRadius: "12px",
-        padding: "1.25rem",
-        backgroundColor: "#151923",
-      }}
-    >
-      <div style={{ fontSize: "0.9rem", color: "#a1a1aa" }}>{label}</div>
-      <div style={{ fontSize: "2rem", fontWeight: "bold", marginTop: "0.5rem" }}>
+    <div className="stat-card">
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">
         {value}
       </div>
     </div>
@@ -166,12 +152,13 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 const tableHeaderStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "0.75rem",
-  borderBottom: "1px solid #333",
+  color: "#003a6b",
+  borderBottom: "2px solid rgba(0, 82, 147, 0.2)",
 };
 
 const tableCellStyle: React.CSSProperties = {
   padding: "0.75rem",
-  borderBottom: "1px solid #333",
+  borderBottom: "1px solid rgba(0, 82, 147, 0.12)",
 };
 
 function formatMode(mode: UserStats["recentGames"][number]["mode"]) {
