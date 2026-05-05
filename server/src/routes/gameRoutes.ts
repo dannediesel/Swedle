@@ -1,8 +1,22 @@
 import express from "express";
 import { requireAuth, AuthenticatedRequest } from "../auth-middleware/authMiddleware";
-import { getDailyGameState, submitDailyGuess } from "../services/gameServices";
+import {
+  createPracticeGame,
+  getDailyGameState,
+  getPracticeGameState,
+  submitDailyGuess,
+  submitPracticeGuess,
+} from "../services/gameServices";
 
 const router = express.Router();
+
+// Express can type route params as string or string[], so normalize before service calls.
+function getSessionIdParam(req: AuthenticatedRequest): string | null {
+  const { sessionId } = req.params;
+  return typeof sessionId === "string" ? sessionId : null;
+}
+
+/* Daily mode */
 
 // Load the saved daily game for the logged-in user.
 router.get("/daily", requireAuth, async (req: AuthenticatedRequest, res) => {
@@ -42,5 +56,86 @@ router.post("/daily/guess", requireAuth, async (req: AuthenticatedRequest, res) 
     return res.status(400).json({ error: "Failed to submit guess" });
   }
 });
+
+/* Practice mode */
+
+// Start a new practice game with a random target player.
+router.post("/practice/new", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const gameState = await createPracticeGame(req.user.userId);
+    return res.status(201).json(gameState);
+  } catch (error) {
+    console.error("Error creating practice game:", error);
+    return res.status(500).json({ error: "Failed to create practice game" });
+  }
+});
+
+// Load one existing practice game by session id.
+router.get(
+  "/practice/:sessionId",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const sessionId = getSessionIdParam(req);
+
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId must be a string" });
+      }
+
+      const gameState = await getPracticeGameState(
+        req.user.userId,
+        sessionId
+      );
+
+      return res.json(gameState);
+    } catch (error) {
+      console.error("Error loading practice game:", error);
+      return res.status(404).json({ error: "Failed to load practice game" });
+    }
+  }
+);
+
+// Submit a guess to an existing practice game.
+router.post(
+  "/practice/:sessionId/guess",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { playerId } = req.body;
+      const sessionId = getSessionIdParam(req);
+
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId must be a string" });
+      }
+
+      if (typeof playerId !== "number") {
+        return res.status(400).json({ error: "playerId must be a number" });
+      }
+
+      const gameState = await submitPracticeGuess(
+        req.user.userId,
+        sessionId,
+        playerId
+      );
+
+      return res.json(gameState);
+    } catch (error) {
+      console.error("Error submitting practice guess:", error);
+      return res.status(400).json({ error: "Failed to submit practice guess" });
+    }
+  }
+);
 
 export default router;

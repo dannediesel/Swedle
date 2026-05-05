@@ -1,10 +1,14 @@
 import { GameMode, SessionStatus } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { Player } from "../types/player";
-import { getPlayerByFullName, getPlayerById } from "./playerService";
+import {
+  getAllPlayers,
+  getPlayerByFullName,
+  getPlayerById,
+} from "./playerService";
 
 // Temporary MVP target. Later this should come from DailyChallenge in the database.
-const TARGET_PLAYER_NAME = "Andreas Granqvist";
+const DAILY_TARGET_PLAYER_NAME = "Andreas Granqvist";
 
 // These statuses tell the frontend how to color a cell or show higher/lower hints.
 type ComparisonStatus = "correct" | "incorrect" | "higher" | "lower" | "partial";
@@ -25,8 +29,9 @@ type GuessResult = {
   };
 };
 
-export type DailyGameState = {
+export type GameState = {
   sessionId: string;
+  mode: GameMode;
   status: SessionStatus;
   attempts: number;
   guesses: GuessResult[];
@@ -89,16 +94,6 @@ function compareClubLists(
   return hasMatch ? "partial" : "incorrect";
 }
 
-async function getTargetPlayer(): Promise<Player> {
-  const targetPlayer = await getPlayerByFullName(TARGET_PLAYER_NAME);
-
-  if (!targetPlayer) {
-    throw new Error("Target player not found");
-  }
-
-  return targetPlayer;
-}
-
 function comparePlayers(guessedPlayer: Player, targetPlayer: Player): GuessResult {
   const isCorrect = guessedPlayer.id === targetPlayer.id;
 
@@ -132,72 +127,23 @@ function comparePlayers(guessedPlayer: Player, targetPlayer: Player): GuessResul
   };
 }
 
-// Legacy guess evaluator used by the current /api/game/guess route.
-// It keeps the old frontend flow working while the daily-session API is being built.
-export async function evaluateGuess(playerId: number): Promise<GuessResult> {
-  const guessedPlayer = await getPlayerById(playerId);
-  const targetPlayer = await getTargetPlayer();
+// Rebuild the full frontend state for a session from saved guesses in the database.
+async function buildGameState(sessionId: string): Promise<GameState> {
+  const session = await prisma.gameSession.findUnique({
+    where: { id: sessionId },
+  });
 
-  if (!guessedPlayer) {
-    throw new Error("Guessed player not found");
+  if (!session) {
+    throw new Error("Game session not found");
   }
 
-  return comparePlayers(guessedPlayer, targetPlayer);
-}
+  const targetPlayer = await getPlayerByFullName(session.targetPlayerName);
 
-async function getOrCreateDailyChallenge() {
-  const today = getTodayDate();
-
-  // Reuse today's challenge if it already exists in the database.
-  const existingChallenge = await prisma.dailyChallenge.findUnique({
-    where: { date: today },
-  });
-
-  if (existingChallenge) {
-    return existingChallenge;
+  if (!targetPlayer) {
+    throw new Error("Target player not found");
   }
 
-  // For now the daily challenge always uses the MVP target player.
-  return prisma.dailyChallenge.create({
-    data: {
-      date: today,
-      targetPlayerName: TARGET_PLAYER_NAME,
-    },
-  });
-}
-
-async function getOrCreateDailySession(userId: string) {
-  const dailyChallenge = await getOrCreateDailyChallenge();
-
-  // Each user gets one session per daily challenge.
-  const existingSession = await prisma.gameSession.findFirst({
-    where: {
-      userId,
-      dailyChallengeId: dailyChallenge.id,
-    },
-  });
-
-  if (existingSession) {
-    return existingSession;
-  }
-
-  // Start a new in-progress session for this user and date.
-  return prisma.gameSession.create({
-    data: {
-      userId,
-      dailyChallengeId: dailyChallenge.id,
-      mode: GameMode.DAILY,
-      targetPlayerName: dailyChallenge.targetPlayerName,
-      status: SessionStatus.IN_PROGRESS,
-    },
-  });
-}
-
-export async function getDailyGameState(userId: string): Promise<DailyGameState> {
-  const session = await getOrCreateDailySession(userId);
-  const targetPlayer = await getTargetPlayer();
-
-  // Guesses are stored as names, then rebuilt into full comparison results for the frontend.
+  // Guesses are stored as names, then compared again so the frontend gets all clue feedback.
   const guesses = await prisma.guess.findMany({
     where: {
       gameSessionId: session.id,
@@ -219,32 +165,48 @@ export async function getDailyGameState(userId: string): Promise<DailyGameState>
 
   return {
     sessionId: session.id,
+    mode: session.mode,
     status: session.status,
     attempts: session.attempts,
     guesses: guessResults,
   };
 }
 
-// Main game logic for a guess.
-// It loads the guessed player, loads the target player, and compares each clue field.
-export async function submitDailyGuess(
+// Shared submit logic for both daily and practice games.
+async function submitGuessToSession(
+  sessionId: string,
   userId: string,
   playerId: number
-): Promise<DailyGameState> {
-  const session = await getOrCreateDailySession(userId);
+): Promise<GameState> {
+  const session = await prisma.gameSession.findUnique({
+    where: { id: sessionId },
+  });
+
+  if (!session) {
+    throw new Error("Game session not found");
+  }
+
+  // Users may only submit guesses to their own sessions.
+  if (session.userId !== userId) {
+    throw new Error("Not allowed to access this game session");
+  }
 
   if (session.status === SessionStatus.SOLVED) {
-    throw new Error("Daily challenge already solved");
+    throw new Error("Game session already solved");
   }
 
   const guessedPlayer = await getPlayerById(playerId);
-  const targetPlayer = await getTargetPlayer();
+  const targetPlayer = await getPlayerByFullName(session.targetPlayerName);
 
   if (!guessedPlayer) {
-    throw new Error("Spelaren du gissade på finns inte.");
+    throw new Error("Guessed player not found");
   }
 
-  // Do not allow the same player to be guessed twice in one daily session.
+  if (!targetPlayer) {
+    throw new Error("Target player not found");
+  }
+
+  // Do not allow the same player to be guessed twice in one session.
   const existingGuess = await prisma.guess.findFirst({
     where: {
       gameSessionId: session.id,
@@ -253,7 +215,7 @@ export async function submitDailyGuess(
   });
 
   if (existingGuess) {
-    throw new Error("Spelaren har redan gissats på");
+    throw new Error("Player already guessed");
   }
 
   const previousGuessCount = await prisma.guess.count({
@@ -286,5 +248,166 @@ export async function submitDailyGuess(
     },
   });
 
-  return getDailyGameState(userId);
+  return buildGameState(session.id);
+}
+
+// Daily mode
+async function getOrCreateDailyChallenge() {
+  const today = getTodayDate();
+
+  // Reuse today's challenge if it already exists in the database.
+  const existingChallenge = await prisma.dailyChallenge.findUnique({
+    where: { date: today },
+  });
+
+  if (existingChallenge) {
+    // During the MVP the daily target is controlled by the constant above.
+    // If it changes in code, keep today's database row in sync.
+    if (existingChallenge.targetPlayerName !== DAILY_TARGET_PLAYER_NAME) {
+      return prisma.dailyChallenge.update({
+        where: { id: existingChallenge.id },
+        data: {
+          targetPlayerName: DAILY_TARGET_PLAYER_NAME,
+        },
+      });
+    }
+
+    return existingChallenge;
+  }
+
+  // For now the daily challenge always uses the MVP target player.
+  return prisma.dailyChallenge.create({
+    data: {
+      date: today,
+      targetPlayerName: DAILY_TARGET_PLAYER_NAME,
+    },
+  });
+}
+
+async function getOrCreateDailySession(userId: string) {
+  const dailyChallenge = await getOrCreateDailyChallenge();
+
+  // Each user gets one session per daily challenge.
+  const existingSession = await prisma.gameSession.findFirst({
+    where: {
+      userId,
+      dailyChallengeId: dailyChallenge.id,
+    },
+  });
+
+  if (existingSession) {
+    // Keep in-progress sessions aligned with today's challenge target.
+    if (
+      existingSession.status === SessionStatus.IN_PROGRESS &&
+      existingSession.targetPlayerName !== dailyChallenge.targetPlayerName
+    ) {
+      return prisma.gameSession.update({
+        where: { id: existingSession.id },
+        data: {
+          targetPlayerName: dailyChallenge.targetPlayerName,
+        },
+      });
+    }
+
+    return existingSession;
+  }
+
+  // Start a new in-progress session for this user and date.
+  return prisma.gameSession.create({
+    data: {
+      userId,
+      dailyChallengeId: dailyChallenge.id,
+      mode: GameMode.DAILY,
+      targetPlayerName: dailyChallenge.targetPlayerName,
+      status: SessionStatus.IN_PROGRESS,
+    },
+  });
+}
+
+export async function getDailyGameState(userId: string): Promise<GameState> {
+  const session = await getOrCreateDailySession(userId);
+  return buildGameState(session.id);
+}
+
+export async function submitDailyGuess(
+  userId: string,
+  playerId: number
+): Promise<GameState> {
+  const session = await getOrCreateDailySession(userId);
+  return submitGuessToSession(session.id, userId, playerId);
+}
+
+// Practice mode
+
+// Practice games use a random target, unlike daily games which share one target per day.
+async function getRandomPlayer(): Promise<Player> {
+  const players = await getAllPlayers();
+
+  if (players.length === 0) {
+    throw new Error("No players available");
+  }
+
+  const randomIndex = Math.floor(Math.random() * players.length);
+  return players[randomIndex];
+}
+
+// Create a new practice session for the user.
+export async function createPracticeGame(userId: string): Promise<GameState> {
+  const targetPlayer = await getRandomPlayer();
+
+  const session = await prisma.gameSession.create({
+    data: {
+      userId,
+      mode: GameMode.PRACTICE,
+      targetPlayerName: targetPlayer.fullName,
+      status: SessionStatus.IN_PROGRESS,
+    },
+  });
+
+  return buildGameState(session.id);
+}
+
+// Load a practice session only if it belongs to the current user.
+export async function getPracticeGameState(
+  userId: string,
+  sessionId: string
+): Promise<GameState> {
+  const session = await prisma.gameSession.findUnique({
+    where: { id: sessionId },
+  });
+
+  if (!session) {
+    throw new Error("Game session not found");
+  }
+
+  if (session.userId !== userId) {
+    throw new Error("Not allowed to access this game session");
+  }
+
+  if (session.mode !== GameMode.PRACTICE) {
+    throw new Error("This is not a practice session");
+  }
+
+  return buildGameState(session.id);
+}
+
+// Submit a guess to a practice session.
+export async function submitPracticeGuess(
+  userId: string,
+  sessionId: string,
+  playerId: number
+): Promise<GameState> {
+  const session = await prisma.gameSession.findUnique({
+    where: { id: sessionId },
+  });
+
+  if (!session) {
+    throw new Error("Game session not found");
+  }
+
+  if (session.mode !== GameMode.PRACTICE) {
+    throw new Error("This is not a practice session");
+  }
+
+  return submitGuessToSession(session.id, userId, playerId);
 }

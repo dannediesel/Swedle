@@ -20,42 +20,51 @@ export type UserStats = {
 
 // Convert dates to YYYY-MM-DD so streaks compare whole days, not exact timestamps.
 function toDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
-// Count how many calendar days there are between two dates.
-function getDayDifference(previousDate: Date, currentDate: Date): number {
-  const msPerDay = 24 * 60 * 60 * 1000;
-
-  const previous = new Date(previousDate);
-  previous.setHours(0, 0, 0, 0);
-
-  const current = new Date(currentDate);
-  current.setHours(0, 0, 0, 0);
-
-  return Math.round((current.getTime() - previous.getTime()) / msPerDay);
+function getTodayDate(): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
 }
 
-// Finds the longest run of solved daily games.
-function calculateBestStreak(solvedDates: Date[]): number {
-  if (solvedDates.length === 0) {
-    return 0;
+function getSessionDate(session: {
+  createdAt: Date;
+  dailyChallenge: { date: Date } | null;
+}) {
+  return session.dailyChallenge ? session.dailyChallenge.date : session.createdAt;
+}
+
+// Counts solved games backwards from the latest played game until the streak breaks.
+function calculateCurrentStreak(sessions: { status: SessionStatus }[]): number {
+  let streak = 0;
+
+  for (const session of sessions) {
+    if (session.status !== SessionStatus.SOLVED) {
+      break;
+    }
+
+    streak += 1;
   }
 
-  const sortedDates = [...solvedDates].sort(
-    (a, b) => a.getTime() - b.getTime()
-  );
+  return streak;
+}
 
-  let bestStreak = 1;
-  let currentStreak = 1;
+// Finds the longest run of solved games across the user's played sessions.
+function calculateBestStreak(sessions: { status: SessionStatus }[]): number {
+  let bestStreak = 0;
+  let currentStreak = 0;
 
-  for (let i = 1; i < sortedDates.length; i++) {
-    const diff = getDayDifference(sortedDates[i - 1], sortedDates[i]);
-
-    if (diff === 1) {
+  for (const session of sessions) {
+    if (session.status === SessionStatus.SOLVED) {
       currentStreak += 1;
-    } else if (diff > 1) {
-      currentStreak = 1;
+    } else {
+      currentStreak = 0;
     }
 
     bestStreak = Math.max(bestStreak, currentStreak);
@@ -64,48 +73,64 @@ function calculateBestStreak(solvedDates: Date[]): number {
   return bestStreak;
 }
 
-// Counts solved days backwards from today until the streak breaks.
-function calculateCurrentStreak(solvedDateKeys: Set<string>): number {
-  let streak = 0;
-  const currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0);
-
-  while (true) {
-    const key = toDateKey(currentDate);
-
-    if (!solvedDateKeys.has(key)) {
-      break;
-    }
-
-    streak += 1;
-    currentDate.setDate(currentDate.getDate() - 1);
-  }
-
-  return streak;
-}
-
-// Builds all user-facing stats from the user's saved daily game sessions.
+// Builds all user-facing stats from the user's saved game sessions.
 export async function getStatsForUser(userId: string): Promise<UserStats> {
-  // Only count daily sessions where the user has made at least one guess.
-  const sessions = await prisma.gameSession.findMany({
+  const today = getTodayDate();
+
+  // Show today's daily session even before the first guess, so Stats can say it is ongoing.
+  // Practice games still appear only when solved, because abandoned random games are misleading.
+  const visibleSessions = await prisma.gameSession.findMany({
     where: {
       userId,
-      mode: GameMode.DAILY,
-      attempts: {
-        gt: 0,
-      },
+      OR: [
+        {
+          mode: GameMode.DAILY,
+          attempts: {
+            gt: 0,
+          },
+        },
+        {
+          mode: GameMode.DAILY,
+          dailyChallenge: {
+            date: today,
+          },
+        },
+        {
+          mode: GameMode.PRACTICE,
+          status: SessionStatus.SOLVED,
+        },
+      ],
     },
     include: {
       dailyChallenge: true,
     },
-    orderBy: {
-      createdAt: "desc",
-    },
   });
 
-  const gamesPlayed = sessions.length;
+  // Sort by the actual game date, newest first. updatedAt is only a tie-breaker.
+  const sortedVisibleSessions = [...visibleSessions].sort((a, b) => {
+    const dateComparison = toDateKey(getSessionDate(b)).localeCompare(
+      toDateKey(getSessionDate(a))
+    );
 
-  const solvedSessions = sessions.filter(
+    if (dateComparison !== 0) {
+      return dateComparison;
+    }
+
+    return b.updatedAt.getTime() - a.updatedAt.getTime();
+  });
+
+  // Totals count actually played rounds; opening today's daily without guessing is not counted.
+  const countedSessions = sortedVisibleSessions.filter((session) => {
+    if (session.mode === GameMode.DAILY) {
+      return session.attempts > 0;
+    }
+
+    return session.status === SessionStatus.SOLVED;
+  });
+
+  const gamesPlayed = countedSessions.length;
+
+  const solvedSessions = countedSessions.filter(
     (session) => session.status === SessionStatus.SOLVED
   );
 
@@ -122,21 +147,13 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
   const averageGuesses =
     wins === 0 ? null : Number((totalAttemptsForWins / wins).toFixed(2));
 
-  const solvedDailyDates = solvedSessions
-    .map((session) => session.dailyChallenge?.date)
-    .filter((date): date is Date => Boolean(date));
-
-  const solvedDateKeys = new Set(solvedDailyDates.map(toDateKey));
-
-  const currentStreak = calculateCurrentStreak(solvedDateKeys);
-  const bestStreak = calculateBestStreak(solvedDailyDates);
+  const currentStreak = calculateCurrentStreak(countedSessions);
+  const bestStreak = calculateBestStreak([...countedSessions].reverse());
 
   // Keep the recent-games table small on the stats page.
-  const recentGames = sessions.slice(0, 10).map((session) => ({
+  const recentGames = sortedVisibleSessions.slice(0, 10).map((session) => ({
     id: session.id,
-    date: session.dailyChallenge
-      ? toDateKey(session.dailyChallenge.date)
-      : toDateKey(session.createdAt),
+    date: toDateKey(getSessionDate(session)),
     mode: session.mode,
     status: session.status,
     attempts: session.attempts,

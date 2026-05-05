@@ -83,7 +83,7 @@ export default function StatsPage() {
   return (
     <div style={{ maxWidth: "1000px", margin: "3rem auto", padding: "2rem" }}>
       <h1> Din statistik</h1>
-      <p>Håll koll på dina prestationer över tid!</p>
+      <p>Håll koll på dina prestationer över tid i alla spellägen.</p>
 
       <div
         style={{
@@ -131,9 +131,9 @@ export default function StatsPage() {
                 <tr key={game.id}>
                   <td style={tableCellStyle}>{game.date}</td>
                   <td style={tableCellStyle}>{formatMode(game.mode)}</td>
-                  <td style={tableCellStyle}>{formatStatus(game.status)}</td>
+                  <td style={tableCellStyle}>{formatStatus(game)}</td>
                   <td style={tableCellStyle}>{game.attempts}</td>
-                  <td style={tableCellStyle}>{game.targetPlayerName}</td>
+                  <td style={tableCellStyle}>{shouldShowTarget(game) ? game.targetPlayerName : "-"}</td>
                 </tr>
               ))}
             </tbody>
@@ -175,13 +175,37 @@ const tableCellStyle: React.CSSProperties = {
 };
 
 function formatMode(mode: UserStats["recentGames"][number]["mode"]) {
-  if (mode === "DAILY") return "Daily";
-  if (mode === "FRIEND_CHALLENGE") return "Friend challenge";
-  return "Practice";
+  if (mode === "DAILY") return "Dagens utmaning";
+  if (mode === "FRIEND_CHALLENGE") return "Vänutmaning";
+  return "Slumpmässigt spel";
 }
 
-function formatStatus(status: UserStats["recentGames"][number]["status"]) {
-  if (status === "SOLVED") return "Solved";
-  if (status === "FAILED") return "Failed";
-  return "In progress";
+function getTodayDateKey() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatStatus(game: UserStats["recentGames"][number]) {
+  if (game.status === "SOLVED") return "Löst";
+  if (game.status === "FAILED") return "Misslyckat";
+
+  // A daily game that is still in progress after its date has passed can no longer be solved.
+  if (game.mode === "DAILY" && game.date < getTodayDateKey()) {
+    return "Olöst";
+  }
+
+  return "Pågående";
+}
+
+function shouldShowTarget(game: UserStats["recentGames"][number]) {
+  if (game.status === "SOLVED" || game.status === "FAILED") {
+    return true;
+  }
+
+  // Old daily challenges are no longer playable, so their target can be shown.
+  return game.mode === "DAILY" && game.date < getTodayDateKey();
 }
