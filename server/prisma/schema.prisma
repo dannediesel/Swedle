@@ -61,6 +61,7 @@ model GameSession {
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   dailyChallenge   DailyChallenge? @relation(fields: [dailyChallengeId], references: [id])
   guesses          Guess[]
+  hints            GameHint[]
 
   friendChallengeAttempts FriendChallengeAttempt[]
 
@@ -77,6 +78,20 @@ model Guess {
 
   gameSession GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
 
+  @@index([gameSessionId])
+}
+
+model GameHint {
+  id            String   @id @default(uuid())
+  gameSessionId String
+  hintOrder     Int
+  type          String
+  text          String
+  createdAt     DateTime @default(now())
+
+  gameSession GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([gameSessionId, hintOrder])
   @@index([gameSessionId])
 }
 

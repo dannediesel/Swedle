@@ -1,5 +1,6 @@
 import { GameMode, SessionStatus } from "@prisma/client";
 import { prisma } from "../config/prisma";
+import { MAX_GUESSES } from "../constants/gameRules";
 
 export type UserStats = {
   gamesPlayed: number;
@@ -40,6 +41,17 @@ function getSessionDate(session: {
   return session.dailyChallenge ? session.dailyChallenge.date : session.createdAt;
 }
 
+function getEffectiveStatus(session: {
+  status: SessionStatus;
+  attempts: number;
+}): SessionStatus {
+  if (session.attempts > MAX_GUESSES) {
+    return SessionStatus.FAILED;
+  }
+
+  return session.status;
+}
+
 // Counts solved games backwards from the latest played game until the streak breaks.
 function calculateCurrentStreak(sessions: { status: SessionStatus }[]): number {
   let streak = 0;
@@ -78,7 +90,7 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
   const today = getTodayDate();
 
   // Show today's daily session even before the first guess, so Stats can say it is ongoing.
-  // Practice games still appear only when solved, because abandoned random games are misleading.
+  // Practice games appear when they have reached a final state.
   const visibleSessions = await prisma.gameSession.findMany({
     where: {
       userId,
@@ -97,7 +109,9 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
         },
         {
           mode: GameMode.PRACTICE,
-          status: SessionStatus.SOLVED,
+          status: {
+            in: [SessionStatus.SOLVED, SessionStatus.FAILED],
+          },
         },
       ],
     },
@@ -119,13 +133,21 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
     return b.updatedAt.getTime() - a.updatedAt.getTime();
   });
 
+  const normalizedVisibleSessions = sortedVisibleSessions.map((session) => ({
+    ...session,
+    status: getEffectiveStatus(session),
+  }));
+
   // Totals count actually played rounds; opening today's daily without guessing is not counted.
-  const countedSessions = sortedVisibleSessions.filter((session) => {
+  const countedSessions = normalizedVisibleSessions.filter((session) => {
     if (session.mode === GameMode.DAILY) {
       return session.attempts > 0;
     }
 
-    return session.status === SessionStatus.SOLVED;
+    return (
+      session.status === SessionStatus.SOLVED ||
+      session.status === SessionStatus.FAILED
+    );
   });
 
   const gamesPlayed = countedSessions.length;
@@ -151,7 +173,7 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
   const bestStreak = calculateBestStreak([...countedSessions].reverse());
 
   // Keep the recent-games table small on the stats page.
-  const recentGames = sortedVisibleSessions.slice(0, 10).map((session) => ({
+  const recentGames = normalizedVisibleSessions.slice(0, 10).map((session) => ({
     id: session.id,
     date: toDateKey(getSessionDate(session)),
     mode: session.mode,

@@ -1,4 +1,5 @@
 import { GameMode, SessionStatus } from "@prisma/client";
+import { MAX_GUESSES } from "../constants/gameRules";
 import { prisma } from "../config/prisma";
 import { Player } from "../types/player";
 import {
@@ -29,12 +30,21 @@ type GuessResult = {
   };
 };
 
+type GameHintResult = {
+  id: string;
+  order: number;
+  type: string;
+  text: string;
+};
+
 export type GameState = {
   sessionId: string;
   mode: GameMode;
   status: SessionStatus;
   attempts: number;
   guesses: GuessResult[];
+  hints: GameHintResult[];
+  availableHints: number;
 };
 
 // Store daily challenges by date without a time component.
@@ -127,6 +137,99 @@ function comparePlayers(guessedPlayer: Player, targetPlayer: Player): GuessResul
   };
 }
 
+function getAvailableHintCount(guessCount: number): number {
+  return Math.max(0, guessCount - 2);
+}
+
+function getUniqueClubs(clubs: string[]): string[] {
+  const seen = new Set<string>();
+
+  return clubs.filter((club) => {
+    const normalizedClub = normalizeClubName(club);
+
+    if (!normalizedClub || seen.has(normalizedClub)) {
+      return false;
+    }
+
+    seen.add(normalizedClub);
+    return true;
+  });
+}
+
+function buildPeriodHint(targetPlayer: Player, hintOrder: number) {
+  if (targetPlayer.ntStartYear === null || targetPlayer.ntEndYear === null) {
+    throw new Error("No national team period hint available");
+  }
+
+  return {
+    type: "national_team_period",
+    text: `Ledtråd ${hintOrder}: Spelaren var aktiv i landslaget under perioden ${targetPlayer.ntStartYear}–${targetPlayer.ntEndYear}.`,
+  };
+}
+
+function buildClubHint(
+  targetPlayer: Player,
+  hintOrder: number,
+  clubIndex: number,
+  wording: "first" | "also" | "additional"
+) {
+  const club = getUniqueClubs(targetPlayer.clubsClueList)[clubIndex];
+
+  if (!club) {
+    throw new Error("No more club hints available");
+  }
+
+  if (wording === "also") {
+    return {
+      type: "club",
+      text: `Ledtråd ${hintOrder}: Spelaren har även spelat för ${club}.`,
+    };
+  }
+
+  if (wording === "additional") {
+    return {
+      type: "club",
+      text: `Ledtråd ${hintOrder}: Spelaren har också representerat ${club}.`,
+    };
+  }
+
+  return {
+    type: "club",
+    text: `Ledtråd ${hintOrder}: Spelaren har spelat för ${club}.`,
+  };
+}
+
+function buildBirthYearHint(targetPlayer: Player, hintOrder: number) {
+  if (targetPlayer.birthYear === null) {
+    throw new Error("No birth year hint available");
+  }
+
+  return {
+    type: "birth_year",
+    text: `Ledtråd ${hintOrder}: Spelaren är född år ${targetPlayer.birthYear}.`,
+  };
+}
+
+function generateHint(targetPlayer: Player, hintOrder: number) {
+  if (hintOrder === 1) {
+    return buildPeriodHint(targetPlayer, hintOrder);
+  }
+
+  if (hintOrder === 2) {
+    return buildClubHint(targetPlayer, hintOrder, 0, "first");
+  }
+
+  if (hintOrder === 3) {
+    return buildClubHint(targetPlayer, hintOrder, 1, "also");
+  }
+
+  if (hintOrder === 4) {
+    return buildBirthYearHint(targetPlayer, hintOrder);
+  }
+
+  return buildClubHint(targetPlayer, hintOrder, hintOrder - 3, "additional");
+}
+
 // Rebuild the full frontend state for a session from saved guesses in the database.
 async function buildGameState(sessionId: string): Promise<GameState> {
   const session = await prisma.gameSession.findUnique({
@@ -153,6 +256,15 @@ async function buildGameState(sessionId: string): Promise<GameState> {
     },
   });
 
+  const hints = await prisma.gameHint.findMany({
+    where: {
+      gameSessionId: session.id,
+    },
+    orderBy: {
+      hintOrder: "asc",
+    },
+  });
+
   const guessResults: GuessResult[] = [];
 
   for (const guess of guesses) {
@@ -169,7 +281,74 @@ async function buildGameState(sessionId: string): Promise<GameState> {
     status: session.status,
     attempts: session.attempts,
     guesses: guessResults,
+    hints: hints.map((hint) => ({
+      id: hint.id,
+      order: hint.hintOrder,
+      type: hint.type,
+      text: hint.text,
+    })),
+    availableHints: getAvailableHintCount(guesses.length),
   };
+}
+
+export async function requestGameHint(
+  userId: string,
+  sessionId: string
+): Promise<GameState> {
+  const session = await prisma.gameSession.findUnique({
+    where: { id: sessionId },
+  });
+
+  if (!session) {
+    throw new Error("Game session not found");
+  }
+
+  if (session.userId !== userId) {
+    throw new Error("Not allowed to access this game session");
+  }
+
+  if (session.status !== SessionStatus.IN_PROGRESS) {
+    throw new Error("Only active games can request hints");
+  }
+
+  const targetPlayer = await getPlayerByFullName(session.targetPlayerName);
+
+  if (!targetPlayer) {
+    throw new Error("Target player not found");
+  }
+
+  const [guessCount, usedHints] = await Promise.all([
+    prisma.guess.count({
+      where: {
+        gameSessionId: session.id,
+      },
+    }),
+    prisma.gameHint.count({
+      where: {
+        gameSessionId: session.id,
+      },
+    }),
+  ]);
+
+  const availableHints = getAvailableHintCount(guessCount);
+
+  if (usedHints >= availableHints) {
+    throw new Error("No hint is available yet");
+  }
+
+  const hintOrder = usedHints + 1;
+  const hint = generateHint(targetPlayer, hintOrder);
+
+  await prisma.gameHint.create({
+    data: {
+      gameSessionId: session.id,
+      hintOrder,
+      type: hint.type,
+      text: hint.text,
+    },
+  });
+
+  return buildGameState(session.id);
 }
 
 // Shared submit logic for both daily and practice games.
@@ -191,8 +370,8 @@ async function submitGuessToSession(
     throw new Error("Not allowed to access this game session");
   }
 
-  if (session.status === SessionStatus.SOLVED) {
-    throw new Error("Game session already solved");
+  if (session.status !== SessionStatus.IN_PROGRESS) {
+    throw new Error("Game session is no longer active");
   }
 
   const guessedPlayer = await getPlayerById(playerId);
@@ -224,8 +403,17 @@ async function submitGuessToSession(
     },
   });
 
+  if (previousGuessCount >= MAX_GUESSES) {
+    throw new Error("Maximum guesses reached");
+  }
+
   const guessOrder = previousGuessCount + 1;
   const guessResult = comparePlayers(guessedPlayer, targetPlayer);
+  const nextStatus = guessResult.isCorrect
+    ? SessionStatus.SOLVED
+    : guessOrder >= MAX_GUESSES
+      ? SessionStatus.FAILED
+      : SessionStatus.IN_PROGRESS;
 
   // Save the guess before updating the session summary.
   await prisma.guess.create({
@@ -236,15 +424,15 @@ async function submitGuessToSession(
     },
   });
 
-  // Mark the session as solved when the guessed player is the target.
+  // Close the session on a correct guess or after the final allowed attempt.
   await prisma.gameSession.update({
     where: {
       id: session.id,
     },
     data: {
       attempts: guessOrder,
-      status: guessResult.isCorrect ? SessionStatus.SOLVED : SessionStatus.IN_PROGRESS,
-      completedAt: guessResult.isCorrect ? new Date() : null,
+      status: nextStatus,
+      completedAt: nextStatus === SessionStatus.IN_PROGRESS ? null : new Date(),
     },
   });
 

@@ -4,6 +4,7 @@ import {
   createPracticeGame,
   getDailyGameState,
   getPracticeGameState,
+  requestGameHint,
   submitDailyGuess,
   submitPracticeGuess,
 } from "../services/gameServices";
@@ -56,6 +57,33 @@ router.post("/daily/guess", requireAuth, async (req: AuthenticatedRequest, res) 
     return res.status(400).json({ error: "Failed to submit guess" });
   }
 });
+
+/* Shared session actions */
+
+// Request the next unlocked hint for any game session owned by the logged-in user.
+router.post(
+  "/sessions/:sessionId/hint",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const sessionId = getSessionIdParam(req);
+
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId must be a string" });
+      }
+
+      const gameState = await requestGameHint(req.user.userId, sessionId);
+      return res.json(gameState);
+    } catch (error) {
+      console.error("Error requesting hint:", error);
+      return res.status(400).json({ error: "Failed to request hint" });
+    }
+  }
+);
 
 /* Practice mode */
 

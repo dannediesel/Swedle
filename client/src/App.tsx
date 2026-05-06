@@ -1,4 +1,4 @@
-import { Link, Navigate, Route, Routes } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import GamePage from "./pages/GamePage";
 import LoginPage from "./pages/LoginPage";
@@ -45,15 +45,20 @@ function App() {
             <span className="brand-mark" aria-hidden="true" />
             Swedle
           </Link>
-          <Link className="nav-link" to="/">Spel</Link>
-          <Link className="nav-link" to="/stats">Statistik</Link>
+          <div className="route-tabs" aria-label="Huvudnavigation">
+            <NavLink className="nav-link" to="/">Spel</NavLink>
+            <NavLink className="nav-link" to="/stats">Statistik</NavLink>
+          </div>
         </div>
 
         <div className="auth-group">
           {user ? (
             <>
               {/* Logged-in users see their username and can end the session. */}
-              <span className="user-chip">Inloggad som <strong>{user.username}</strong></span>
+              <span className="user-chip">
+                <span className="status-dot" aria-hidden="true" />
+                Inloggad som <strong>{user.username}</strong>
+              </span>
               <button className="button" onClick={logout}>Logga ut</button>
             </>
           ) : (

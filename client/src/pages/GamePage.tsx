@@ -43,6 +43,13 @@ type GuessResult = {
   };
 };
 
+type GameHint = {
+  id: string;
+  order: number;
+  type: string;
+  text: string;
+};
+
 // Backend state for one game session, daily or practice.
 type GameState = {
   sessionId: string;
@@ -50,6 +57,8 @@ type GameState = {
   status: "IN_PROGRESS" | "SOLVED" | "FAILED";
   attempts: number;
   guesses: GuessResult[];
+  hints: GameHint[];
+  availableHints: number;
 };
 
 // General color mapping for comparison cells in the guess table.
@@ -57,29 +66,33 @@ function getStatusStyle(status: ComparisonStatus) {
   switch (status) {
     case "correct":
       return {
-        background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
-        borderColor: "rgba(134, 239, 172, 0.24)",
-        color: "#f0fdf4",
+        background:
+          "linear-gradient(135deg, rgba(18, 135, 83, 0.96) 0%, rgba(10, 93, 64, 0.96) 100%)",
+        borderColor: "rgba(190, 255, 213, 0.18)",
+        color: "#effff5",
       };
     case "incorrect":
       return {
-        background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
-        borderColor: "rgba(252, 165, 165, 0.2)",
-        color: "#fff7f7",
+        background:
+          "linear-gradient(135deg, rgba(179, 54, 45, 0.96) 0%, rgba(125, 37, 45, 0.96) 100%)",
+        borderColor: "rgba(255, 184, 168, 0.16)",
+        color: "#fff6f3",
       };
     case "higher":
     case "lower":
     case "partial":
       return {
-        background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-        borderColor: "rgba(253, 230, 138, 0.28)",
-        color: "#1f1300",
+        background:
+          "linear-gradient(135deg, rgba(255, 193, 51, 0.98) 0%, rgba(214, 126, 31, 0.98) 100%)",
+        borderColor: "rgba(255, 232, 156, 0.24)",
+        color: "#18233a",
       };
     default:
       return {
-        background: "linear-gradient(135deg, #334155 0%, #1e293b 100%)",
-        borderColor: "rgba(148, 163, 184, 0.18)",
-        color: "white",
+        background:
+          "linear-gradient(135deg, rgba(15, 45, 82, 0.96) 0%, rgba(7, 27, 53, 0.96) 100%)",
+        borderColor: "rgba(160, 196, 235, 0.14)",
+        color: "#f8fafc",
       };
   }
 }
@@ -119,8 +132,15 @@ export default function GamePage() {
   // Current status of the active game session.
   const [gameStatus, setGameStatus] = useState<GameState["status"]>("IN_PROGRESS");
 
+  // Current session id, used by shared session actions such as requesting hints.
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+
   // Practice games need a session id so guesses go to the right backend session.
   const [practiceSessionId, setPracticeSessionId] = useState<string | null>(null);
+
+  // Hints are generated and persisted by the backend.
+  const [hints, setHints] = useState<GameHint[]>([]);
+  const [availableHints, setAvailableHints] = useState(0);
 
   // Simple user-facing error message for failed API calls.
   const [error, setError] = useState("");
@@ -135,11 +155,15 @@ export default function GamePage() {
   // Do not show old suggestions or guesses when the user is logged out.
   const visibleResults = user && trimmedQuery ? results : [];
   const visibleGuesses = user ? guesses : [];
+  const visibleHints = user ? hints : [];
 
   // The backend returns guesses oldest first, while the UI shows newest first.
   const applyGameState = useCallback((data: GameState) => {
     setGuesses([...data.guesses].reverse());
     setGameStatus(data.status);
+    setCurrentSessionId(data.sessionId);
+    setHints(data.hints);
+    setAvailableHints(data.availableHints);
 
     if (data.mode === "PRACTICE") {
       setPracticeSessionId(data.sessionId);
@@ -254,8 +278,12 @@ export default function GamePage() {
       return;
     }
 
-    if (gameStatus === "SOLVED") {
-      setError("Det här spelet är redan löst.");
+    if (gameStatus !== "IN_PROGRESS") {
+      setError(
+        gameStatus === "FAILED"
+          ? "Den här omgången är redan förlorad."
+          : "Det här spelet är redan löst."
+      );
       return;
     }
 
@@ -280,6 +308,26 @@ export default function GamePage() {
       setSelectedIndex(-1);
     } catch {
       setError("Kunde inte skicka gissningen. Spelaren kan redan ha gissats.");
+    }
+  }
+
+  async function handleRequestHint() {
+    if (!user || !currentSessionId) {
+      setError("Du måste vara inne i en spelomgång för att använda ledtråd.");
+      return;
+    }
+
+    try {
+      setError("");
+
+      const data = await apiRequest<GameState>(
+        `/api/game/sessions/${currentSessionId}/hint`,
+        { method: "POST" }
+      );
+
+      applyGameState(data);
+    } catch {
+      setError("Ingen ledtråd är tillgänglig ännu.");
     }
   }
 
@@ -335,15 +383,20 @@ export default function GamePage() {
   // The input is disabled until the user can submit a valid guess.
   const inputDisabled =
     !user ||
-    gameStatus === "SOLVED" ||
+    gameStatus !== "IN_PROGRESS" ||
     (activeMode === "PRACTICE" && !practiceSessionId);
+  const hintUnlockGuessesRemaining = Math.max(0, 3 - visibleGuesses.length);
+  const canRequestHint =
+    Boolean(user) &&
+    gameStatus === "IN_PROGRESS" &&
+    visibleHints.length < availableHints;
 
   // Shared compact table styles keep all clue columns inside the page width.
   const tableHeaderStyle = {
     padding: "0.65rem 0.45rem",
-    color: "#dbeafe",
+    color: "rgba(248, 250, 252, 0.82)",
     fontSize: "0.82rem",
-    fontWeight: 700,
+    fontWeight: 800,
     lineHeight: 1.2,
     textAlign: "center" as const,
     overflowWrap: "break-word" as const,
@@ -363,7 +416,7 @@ export default function GamePage() {
     borderStyle: "solid",
     borderWidth: "1px 0 1px 1px",
     boxShadow:
-      "inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 18px rgba(0, 0, 0, 0.14)",
+      "inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 20px rgba(0, 10, 28, 0.18)",
   };
 
   // Rounded outer cells make each submitted guess read as one compact row.
@@ -433,6 +486,56 @@ export default function GamePage() {
             <p className="success-message">
               Bra gissat! Du klarade det på {guesses.length} {guesses.length === 1 ? "försök" : "försök"}.
             </p>
+          )}
+
+          {gameStatus === "FAILED" && (
+            <p className="failed-message">
+              Omgången är förlorad efter 8 gissningar.
+            </p>
+          )}
+
+          {user && (
+            <section className="hint-panel" aria-label="Ledtrådar">
+              <div className="hint-panel-header">
+                <div>
+                  <h2>Ledtrådar</h2>
+                  <p>
+                    {gameStatus === "SOLVED"
+                      ? "Spelet är löst, men dina använda ledtrådar sparas här."
+                      : gameStatus === "FAILED"
+                        ? "Omgången är avslutad, men dina använda ledtrådar sparas här."
+                        : "Ledtrådar låses upp av dina gissningar och sparas i omgången."}
+                  </p>
+                </div>
+
+                {gameStatus === "IN_PROGRESS" && hintUnlockGuessesRemaining > 0 && (
+                  <span className="hint-lock">
+                    Låses upp efter {hintUnlockGuessesRemaining} fler{" "}
+                    {hintUnlockGuessesRemaining === 1 ? "gissning" : "gissningar"}
+                  </span>
+                )}
+
+                {canRequestHint && (
+                  <button className="button hint-button" onClick={handleRequestHint}>
+                    Visa nästa ledtråd
+                  </button>
+                )}
+              </div>
+
+              {visibleHints.length > 0 ? (
+                <ol className="hint-list">
+                  {visibleHints.map((hint) => (
+                    <li className="hint-card" key={hint.id}>
+                      {hint.text}
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="hint-empty">
+                  Inga ledtrådar använda ännu.
+                </p>
+              )}
+            </section>
           )}
 
           <div className="search-panel" style={{ position: "relative" }}>

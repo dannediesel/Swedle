@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useAuth } from "../context/useAuth";
 
+const MAX_GUESSES = 8;
+
 // Shape returned by GET /api/stats/me.
 type UserStats = {
   gamesPlayed: number;
@@ -177,6 +179,7 @@ function getTodayDateKey() {
 }
 
 function formatStatus(game: UserStats["recentGames"][number]) {
+  if (game.attempts > MAX_GUESSES) return "Misslyckat";
   if (game.status === "SOLVED") return "Löst";
   if (game.status === "FAILED") return "Misslyckat";
 
@@ -189,6 +192,10 @@ function formatStatus(game: UserStats["recentGames"][number]) {
 }
 
 function shouldShowTarget(game: UserStats["recentGames"][number]) {
+  if (game.attempts > MAX_GUESSES) {
+    return true;
+  }
+
   if (game.status === "SOLVED" || game.status === "FAILED") {
     return true;
   }
