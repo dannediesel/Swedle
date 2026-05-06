@@ -8,8 +8,7 @@ import {
   getPlayerById,
 } from "./playerService";
 
-// Temporary MVP target. Later this should come from DailyChallenge in the database.
-const DAILY_TARGET_PLAYER_NAME = "Andreas Granqvist";
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 // These statuses tell the frontend how to color a cell or show higher/lower hints.
 type ComparisonStatus = "correct" | "incorrect" | "higher" | "lower" | "partial";
@@ -52,6 +51,23 @@ function getTodayDate(): Date {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return today;
+}
+
+function getLocalDateDayNumber(date: Date): number {
+  return Math.floor(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY_IN_MS
+  );
+}
+
+async function getDailyTargetPlayerName(date: Date): Promise<string> {
+  const players = await getAllPlayers();
+
+  if (players.length === 0) {
+    throw new Error("No players available");
+  }
+
+  const targetIndex = getLocalDateDayNumber(date) % players.length;
+  return players[targetIndex].fullName;
 }
 
 // Text fields are currently compared by exact match.
@@ -442,6 +458,7 @@ async function submitGuessToSession(
 // Daily mode
 async function getOrCreateDailyChallenge() {
   const today = getTodayDate();
+  const targetPlayerName = await getDailyTargetPlayerName(today);
 
   // Reuse today's challenge if it already exists in the database.
   const existingChallenge = await prisma.dailyChallenge.findUnique({
@@ -449,13 +466,12 @@ async function getOrCreateDailyChallenge() {
   });
 
   if (existingChallenge) {
-    // During the MVP the daily target is controlled by the constant above.
-    // If it changes in code, keep today's database row in sync.
-    if (existingChallenge.targetPlayerName !== DAILY_TARGET_PLAYER_NAME) {
+    // The target is derived from the date, so each calendar day gets a stable player.
+    if (existingChallenge.targetPlayerName !== targetPlayerName) {
       return prisma.dailyChallenge.update({
         where: { id: existingChallenge.id },
         data: {
-          targetPlayerName: DAILY_TARGET_PLAYER_NAME,
+          targetPlayerName,
         },
       });
     }
@@ -463,11 +479,11 @@ async function getOrCreateDailyChallenge() {
     return existingChallenge;
   }
 
-  // For now the daily challenge always uses the MVP target player.
+  // Create one shared challenge row for this date.
   return prisma.dailyChallenge.create({
     data: {
       date: today,
-      targetPlayerName: DAILY_TARGET_PLAYER_NAME,
+      targetPlayerName,
     },
   });
 }
@@ -489,11 +505,27 @@ async function getOrCreateDailySession(userId: string) {
       existingSession.status === SessionStatus.IN_PROGRESS &&
       existingSession.targetPlayerName !== dailyChallenge.targetPlayerName
     ) {
-      return prisma.gameSession.update({
-        where: { id: existingSession.id },
-        data: {
-          targetPlayerName: dailyChallenge.targetPlayerName,
-        },
+      return prisma.$transaction(async (tx) => {
+        await tx.guess.deleteMany({
+          where: {
+            gameSessionId: existingSession.id,
+          },
+        });
+
+        await tx.gameHint.deleteMany({
+          where: {
+            gameSessionId: existingSession.id,
+          },
+        });
+
+        return tx.gameSession.update({
+          where: { id: existingSession.id },
+          data: {
+            targetPlayerName: dailyChallenge.targetPlayerName,
+            attempts: 0,
+            completedAt: null,
+          },
+        });
       });
     }
 
