@@ -12,9 +12,8 @@ export default function LoginPage() {
   // login comes from AuthProvider and handles the API call + token storage.
   const { login } = useAuth();
 
-  // Pre-filled values make local testing quicker while the app is still in development.
-  const [email, setEmail] = useState("test@example.com");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   // Error text shown when the backend rejects the login request.
   const [error, setError] = useState("");
