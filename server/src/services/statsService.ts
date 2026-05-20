@@ -1,6 +1,8 @@
-import { GameMode, SessionStatus } from "@prisma/client";
+import { GameMode, Prisma, SessionStatus } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { MAX_GUESSES } from "../constants/gameRules";
+
+type FriendChallengeResult = "WIN" | "LOSS" | "DRAW" | "PENDING";
 
 export type UserStats = {
   gamesPlayed: number;
@@ -16,8 +18,36 @@ export type UserStats = {
     status: SessionStatus;
     attempts: number;
     targetPlayerName: string;
+    friendChallengeResult: FriendChallengeResult | null;
   }[];
 };
+
+const statsSessionInclude = {
+  dailyChallenge: true,
+  friendChallengeAttempts: {
+    include: {
+      friendChallenge: {
+        include: {
+          attempts: {
+            include: {
+              gameSession: {
+                select: {
+                  id: true,
+                  status: true,
+                  attempts: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.GameSessionInclude;
+
+type StatsSession = Prisma.GameSessionGetPayload<{
+  include: typeof statsSessionInclude;
+}>;
 
 // Convert dates to YYYY-MM-DD so streaks compare whole days, not exact timestamps.
 function toDateKey(date: Date): string {
@@ -50,6 +80,77 @@ function getEffectiveStatus(session: {
   }
 
   return session.status;
+}
+
+function isFinished(status: SessionStatus) {
+  return status === SessionStatus.SOLVED || status === SessionStatus.FAILED;
+}
+
+function getFriendChallengeResult(
+  session: StatsSession
+): FriendChallengeResult | null {
+  if (session.mode !== GameMode.FRIEND_CHALLENGE) {
+    return null;
+  }
+
+  const challengeAttempt = session.friendChallengeAttempts[0];
+  const opponentAttempt = challengeAttempt?.friendChallenge.attempts.find(
+    (attempt) => attempt.gameSession.id !== session.id
+  );
+
+  if (!opponentAttempt) {
+    return null;
+  }
+
+  const myStatus = getEffectiveStatus(session);
+  const opponentStatus = getEffectiveStatus(opponentAttempt.gameSession);
+
+  if (!isFinished(myStatus) || !isFinished(opponentStatus)) {
+    return "PENDING";
+  }
+
+  if (
+    myStatus === SessionStatus.FAILED &&
+    opponentStatus === SessionStatus.FAILED
+  ) {
+    return "DRAW";
+  }
+
+  if (myStatus === SessionStatus.FAILED) {
+    return "LOSS";
+  }
+
+  if (opponentStatus === SessionStatus.FAILED) {
+    return "WIN";
+  }
+
+  if (session.attempts < opponentAttempt.gameSession.attempts) {
+    return "WIN";
+  }
+
+  if (session.attempts > opponentAttempt.gameSession.attempts) {
+    return "LOSS";
+  }
+
+  return "DRAW";
+}
+
+function isStatsWin(session: StatsSession) {
+  if (session.mode === GameMode.FRIEND_CHALLENGE) {
+    return getFriendChallengeResult(session) === "WIN";
+  }
+
+  return session.status === SessionStatus.SOLVED;
+}
+
+function toStreakStatus(session: StatsSession): SessionStatus {
+  if (session.mode !== GameMode.FRIEND_CHALLENGE) {
+    return session.status;
+  }
+
+  return getFriendChallengeResult(session) === "WIN"
+    ? SessionStatus.SOLVED
+    : SessionStatus.FAILED;
 }
 
 // Counts solved games backwards from the latest played game until the streak breaks.
@@ -118,9 +219,7 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
         },
       ],
     },
-    include: {
-      dailyChallenge: true,
-    },
+    include: statsSessionInclude,
   });
 
   // Sort by the actual game date, newest first. updatedAt is only a tie-breaker.
@@ -159,7 +258,7 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
   const gamesPlayed = countedSessions.length;
 
   const solvedSessions = countedSessions.filter(
-    (session) => session.status === SessionStatus.SOLVED
+    (session) => isStatsWin(session)
   );
 
   const wins = solvedSessions.length;
@@ -175,8 +274,12 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
   const averageGuesses =
     wins === 0 ? null : Number((totalAttemptsForWins / wins).toFixed(2));
 
-  const currentStreak = calculateCurrentStreak(countedSessions);
-  const bestStreak = calculateBestStreak([...countedSessions].reverse());
+  const streakSessions = countedSessions.map((session) => ({
+    status: toStreakStatus(session),
+  }));
+
+  const currentStreak = calculateCurrentStreak(streakSessions);
+  const bestStreak = calculateBestStreak([...streakSessions].reverse());
 
   // Keep the recent-games table small on the stats page.
   const recentGames = normalizedVisibleSessions.slice(0, 10).map((session) => ({
@@ -186,6 +289,7 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
     status: session.status,
     attempts: session.attempts,
     targetPlayerName: session.targetPlayerName,
+    friendChallengeResult: getFriendChallengeResult(session),
   }));
 
   return {

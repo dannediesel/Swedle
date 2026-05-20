@@ -20,6 +20,7 @@ type UserStats = {
     status: "IN_PROGRESS" | "SOLVED" | "FAILED";
     attempts: number;
     targetPlayerName: string;
+    friendChallengeResult: "WIN" | "LOSS" | "DRAW" | "PENDING" | null;
   }[];
 };
 
@@ -179,6 +180,15 @@ function getTodayDateKey() {
 }
 
 function formatStatus(game: UserStats["recentGames"][number]) {
+  if (game.mode === "FRIEND_CHALLENGE" && game.friendChallengeResult) {
+    if (game.friendChallengeResult === "WIN") return "Vinst";
+    if (game.friendChallengeResult === "LOSS") return "Förlust";
+    if (game.friendChallengeResult === "DRAW") return "Oavgjort";
+    return game.status === "SOLVED" || game.status === "FAILED"
+      ? "Väntar på vän"
+      : "Pågående";
+  }
+
   if (game.attempts > MAX_GUESSES) return "Misslyckat";
   if (game.status === "SOLVED") return "Löst";
   if (game.status === "FAILED") return "Misslyckat";
