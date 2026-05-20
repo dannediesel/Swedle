@@ -3,6 +3,7 @@
 export type Player = {
   id: number;
   fullName: string;
+  imageUrl: string | null;
 
   // Some historical data can be missing, so nullable fields are represented as null.
   birthYear: number | null;
