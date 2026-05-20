@@ -3,9 +3,11 @@ import { requireAuth, AuthenticatedRequest } from "../auth-middleware/authMiddle
 import {
   createPracticeGame,
   getDailyGameState,
+  getFriendChallengeGameState,
   getPracticeGameState,
   requestGameHint,
   submitDailyGuess,
+  submitFriendChallengeGuess,
   submitPracticeGuess,
 } from "../services/gameServices";
 
@@ -162,6 +164,70 @@ router.post(
     } catch (error) {
       console.error("Error submitting practice guess:", error);
       return res.status(400).json({ error: "Failed to submit practice guess" });
+    }
+  }
+);
+
+/* Friend challenge mode */
+
+router.get(
+  "/friend-challenges/:sessionId",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const sessionId = getSessionIdParam(req);
+
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId must be a string" });
+      }
+
+      const gameState = await getFriendChallengeGameState(
+        req.user.userId,
+        sessionId
+      );
+
+      return res.json(gameState);
+    } catch (error) {
+      console.error("Error loading friend challenge:", error);
+      return res.status(404).json({ error: "Failed to load friend challenge" });
+    }
+  }
+);
+
+router.post(
+  "/friend-challenges/:sessionId/guess",
+  requireAuth,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { playerId } = req.body;
+      const sessionId = getSessionIdParam(req);
+
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId must be a string" });
+      }
+
+      if (typeof playerId !== "number") {
+        return res.status(400).json({ error: "playerId must be a number" });
+      }
+
+      const gameState = await submitFriendChallengeGuess(
+        req.user.userId,
+        sessionId,
+        playerId
+      );
+
+      return res.json(gameState);
+    } catch (error) {
+      console.error("Error submitting friend challenge guess:", error);
+      return res.status(400).json({ error: "Failed to submit friend challenge guess" });
     }
   }
 );

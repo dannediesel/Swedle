@@ -836,7 +836,8 @@
 }
 
 .auth-card,
-.stats-page {
+.stats-page,
+.friends-page {
   position: relative;
   z-index: 1;
   width: min(1000px, calc(100% - 2rem));
@@ -859,20 +860,111 @@
   width: min(1180px, calc(100% - 2rem));
 }
 
+.friends-page {
+  width: min(1180px, calc(100% - 2rem));
+}
+
 .auth-card h1,
-.stats-page h1 {
+.stats-page h1,
+.friends-page h1 {
   margin-bottom: 0.9rem;
   color: var(--sweden-blue);
 }
 
 .auth-card .hero-copy,
-.stats-page .hero-copy {
+.stats-page .hero-copy,
+.friends-page .hero-copy {
   color: var(--text-muted);
 }
 
 .auth-card .field-label,
-.stats-page .field-label {
+.stats-page .field-label,
+.friends-page .field-label {
   color: var(--sweden-blue-deep);
+}
+
+.friends-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.friends-header .eyebrow {
+  margin-bottom: 0.85rem;
+  color: var(--kit-yellow);
+}
+
+.friends-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.friend-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-height: 220px;
+  padding: 1rem;
+  border: 1px solid rgba(0, 82, 147, 0.14);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(255, 209, 25, 0.12), transparent 46%),
+    #ffffff;
+  box-shadow: 0 14px 36px rgba(3, 18, 40, 0.09);
+}
+
+.friend-panel h2 {
+  color: var(--sweden-blue);
+  font-size: 1.05rem;
+}
+
+.friend-panel h3 {
+  margin-top: 0.4rem;
+  color: var(--sweden-blue-deep);
+  font-size: 0.95rem;
+}
+
+.friend-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  min-height: 64px;
+  padding: 0.75rem;
+  border: 1px solid rgba(0, 82, 147, 0.12);
+  border-radius: var(--radius);
+  background: rgba(248, 250, 252, 0.92);
+}
+
+.friend-row strong,
+.friend-row span {
+  display: block;
+}
+
+.friend-row span {
+  margin-top: 0.18rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.friend-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.friend-empty {
+  color: var(--text-muted);
+  font-weight: 700;
 }
 
 .auth-form {
@@ -956,6 +1048,10 @@
 @media (max-width: 900px) {
   .stats-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .friends-grid {
+    grid-template-columns: 1fr;
   }
 }
 

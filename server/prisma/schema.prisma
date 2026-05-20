@@ -23,6 +23,12 @@ enum SessionStatus {
   FAILED
 }
 
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 model User {
   id           String   @id @default(uuid())
   username     String   @unique
@@ -35,6 +41,23 @@ model User {
   gameSessions            GameSession[]
   createdFriendChallenges FriendChallenge[]        @relation("CreatedFriendChallenges")
   friendChallengeAttempts FriendChallengeAttempt[]
+  sentFriendRequests      Friendship[]             @relation("SentFriendRequests")
+  receivedFriendRequests  Friendship[]             @relation("ReceivedFriendRequests")
+}
+
+model Friendship {
+  id          String           @id @default(uuid())
+  requesterId String
+  receiverId  String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  requester User @relation("SentFriendRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  receiver  User @relation("ReceivedFriendRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, receiverId])
+  @@index([receiverId])
 }
 
 model DailyChallenge {
@@ -70,11 +93,11 @@ model GameSession {
 }
 
 model Guess {
-  id               String   @id @default(uuid())
-  gameSessionId    String
+  id                String   @id @default(uuid())
+  gameSessionId     String
   guessedPlayerName String
-  guessOrder       Int
-  createdAt        DateTime @default(now())
+  guessOrder        Int
+  createdAt         DateTime @default(now())
 
   gameSession GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
 
@@ -96,14 +119,14 @@ model GameHint {
 }
 
 model FriendChallenge {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   creatorId        String
-  challengeCode    String   @unique
+  challengeCode    String    @unique
   targetPlayerName String
-  createdAt        DateTime @default(now())
+  createdAt        DateTime  @default(now())
   expiresAt        DateTime?
 
-  creator User @relation("CreatedFriendChallenges", fields: [creatorId], references: [id], onDelete: Cascade)
+  creator  User                     @relation("CreatedFriendChallenges", fields: [creatorId], references: [id], onDelete: Cascade)
   attempts FriendChallengeAttempt[]
 
   @@index([creatorId])

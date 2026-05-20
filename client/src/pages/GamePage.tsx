@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useAuth } from "../context/useAuth";
 import "./../App.css";
@@ -24,8 +24,8 @@ type Player = {
 // The frontend uses these values to decide colors and higher/lower arrows.
 type ComparisonStatus = "correct" | "incorrect" | "higher" | "lower" | "partial";
 
-// The game page can show either the shared daily challenge or a random practice game.
-type GameMode = "DAILY" | "PRACTICE";
+// The game page can show daily, friend challenge, or practice sessions.
+type GameMode = "DAILY" | "FRIEND_CHALLENGE" | "PRACTICE";
 
 // Response shape for one submitted guess.
 type GuessResult = {
@@ -116,6 +116,7 @@ function formatNumberWithHint(value: number | null, status: ComparisonStatus) {
 
 export default function GamePage() {
   const { user } = useAuth();
+  const { sessionId: challengeSessionId } = useParams();
 
   // Which game mode the page is currently showing.
   const [activeMode, setActiveMode] = useState<GameMode>("DAILY");
@@ -189,6 +190,20 @@ export default function GamePage() {
       return;
     }
 
+    if (challengeSessionId) {
+      apiRequest<GameState>(`/api/game/friend-challenges/${challengeSessionId}`)
+        .then((data) => {
+          setError("");
+          setActiveMode("FRIEND_CHALLENGE");
+          setPracticeSessionId(null);
+          applyGameState(data);
+        })
+        .catch(() => {
+          setError("Kunde inte ladda vänutmaningen.");
+        });
+      return;
+    }
+
     let isCurrentRequest = true;
 
     // Logged-in users start on their saved daily challenge.
@@ -216,7 +231,7 @@ export default function GamePage() {
     return () => {
       isCurrentRequest = false;
     };
-  }, [user, applyGameState]);
+  }, [user, applyGameState, challengeSessionId]);
 
   useEffect(() => {
     if (!user || !trimmedQuery) {
@@ -294,6 +309,8 @@ export default function GamePage() {
       const endpoint =
         activeMode === "DAILY"
           ? "/api/game/daily/guess"
+          : activeMode === "FRIEND_CHALLENGE"
+            ? `/api/game/friend-challenges/${currentSessionId}/guess`
           : `/api/game/practice/${practiceSessionId}/guess`;
 
       const data = await apiRequest<GameState>(endpoint, {
@@ -384,6 +401,7 @@ export default function GamePage() {
   const inputDisabled =
     !user ||
     gameStatus !== "IN_PROGRESS" ||
+    (activeMode === "FRIEND_CHALLENGE" && !currentSessionId) ||
     (activeMode === "PRACTICE" && !practiceSessionId);
   const hintUnlockGuessesRemaining = Math.max(0, 3 - visibleGuesses.length);
   const canRequestHint =
@@ -478,7 +496,12 @@ export default function GamePage() {
           </div>
 
           <p className="selected-mode">
-            Valt spelläge: {activeMode === "DAILY" ? "Dagens utmaning" : "Slumpmässigt spel"}
+            Valt spelläge:{" "}
+            {activeMode === "DAILY"
+              ? "Dagens utmaning"
+              : activeMode === "FRIEND_CHALLENGE"
+                ? "Vänutmaning"
+                : "Slumpmässigt spel"}
           </p>
 
           {/* The backend marks a session as SOLVED after a correct guess. */}

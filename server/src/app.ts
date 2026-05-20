@@ -4,6 +4,7 @@ import playerRoutes from "./routes/playerRoutes";
 import gameRoutes from "./routes/gameRoutes";
 import authRoutes from "./routes/authRoutes";
 import statsRoutes from "./routes/statsRoute";
+import friendRoutes from "./routes/friendRoutes";
 
 // Create the Express application.
 // server.ts imports this app and is responsible for starting the HTTP server.
@@ -25,4 +26,5 @@ app.use("/api/players", playerRoutes);
 app.use("/api/game", gameRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api/friends", friendRoutes);
 export default app;

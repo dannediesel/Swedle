@@ -1,5 +1,6 @@
 import { Link, Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
+import FriendsPage from "./pages/FriendsPage";
 import GamePage from "./pages/GamePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -47,6 +48,7 @@ function App() {
           </Link>
           <div className="route-tabs" aria-label="Huvudnavigation">
             <NavLink className="nav-link" to="/">Spel</NavLink>
+            <NavLink className="nav-link" to="/friends">Vänner</NavLink>
             <NavLink className="nav-link" to="/stats">Statistik</NavLink>
           </div>
         </div>
@@ -72,11 +74,10 @@ function App() {
       </nav>
 
       <Routes>
-        {/* The main game is available at the root path. */}
-        <Route path="/" element={<GamePage />} />
-
         {/* Logged-in users should not see login/register again, so redirect them home. */}
         <Route path="/" element={<GamePage />} />
+        <Route path="/challenge/:sessionId" element={<GamePage />} />
+        <Route path="/friends" element={<FriendsPage />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />

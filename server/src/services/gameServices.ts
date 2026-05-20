@@ -631,3 +631,68 @@ export async function submitPracticeGuess(
 
   return submitGuessToSession(session.id, userId, playerId);
 }
+
+export async function getFriendChallengeGameState(
+  userId: string,
+  sessionId: string
+): Promise<GameState> {
+  const session = await prisma.gameSession.findUnique({
+    where: { id: sessionId },
+  });
+
+  if (!session) {
+    throw new Error("Game session not found");
+  }
+
+  if (session.userId !== userId) {
+    throw new Error("Not allowed to access this game session");
+  }
+
+  if (session.mode !== GameMode.FRIEND_CHALLENGE) {
+    throw new Error("This is not a friend challenge session");
+  }
+
+  const attempt = await prisma.friendChallengeAttempt.findFirst({
+    where: {
+      userId,
+      gameSessionId: session.id,
+    },
+  });
+
+  if (!attempt) {
+    throw new Error("Friend challenge attempt not found");
+  }
+
+  return buildGameState(session.id);
+}
+
+export async function submitFriendChallengeGuess(
+  userId: string,
+  sessionId: string,
+  playerId: number
+): Promise<GameState> {
+  const session = await prisma.gameSession.findUnique({
+    where: { id: sessionId },
+  });
+
+  if (!session) {
+    throw new Error("Game session not found");
+  }
+
+  if (session.mode !== GameMode.FRIEND_CHALLENGE) {
+    throw new Error("This is not a friend challenge session");
+  }
+
+  const attempt = await prisma.friendChallengeAttempt.findFirst({
+    where: {
+      userId,
+      gameSessionId: session.id,
+    },
+  });
+
+  if (!attempt) {
+    throw new Error("Friend challenge attempt not found");
+  }
+
+  return submitGuessToSession(session.id, userId, playerId);
+}
