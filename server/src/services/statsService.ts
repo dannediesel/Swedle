@@ -113,6 +113,9 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
             in: [SessionStatus.SOLVED, SessionStatus.FAILED],
           },
         },
+        {
+          mode: GameMode.FRIEND_CHALLENGE,
+        },
       ],
     },
     include: {
@@ -140,7 +143,10 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
 
   // Totals count actually played rounds; opening today's daily without guessing is not counted.
   const countedSessions = normalizedVisibleSessions.filter((session) => {
-    if (session.mode === GameMode.DAILY) {
+    if (
+      session.mode === GameMode.DAILY ||
+      session.mode === GameMode.FRIEND_CHALLENGE
+    ) {
       return session.attempts > 0;
     }
 

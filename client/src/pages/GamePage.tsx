@@ -587,9 +587,9 @@ export default function GamePage() {
 
   // Shared compact table styles keep all clue columns inside the page width.
   const tableHeaderStyle = {
-    padding: "0.65rem 0.45rem",
+    padding: "0.48rem 0.36rem",
     color: "rgba(248, 250, 252, 0.82)",
-    fontSize: "0.82rem",
+    fontSize: "0.76rem",
     fontWeight: 800,
     lineHeight: 1.2,
     textAlign: "center" as const,
@@ -599,8 +599,8 @@ export default function GamePage() {
   };
 
   const tableCellStyle = {
-    padding: "0.78rem 0.55rem",
-    fontSize: "0.95rem",
+    padding: "0.58rem 0.42rem",
+    fontSize: "0.88rem",
     fontWeight: 600,
     lineHeight: 1.35,
     textAlign: "center" as const,
