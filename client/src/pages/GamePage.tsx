@@ -881,8 +881,8 @@ export default function GamePage() {
                 <th style={tableHeaderStyle}>Födelseår</th>
                 <th style={tableHeaderStyle}>Landskamper</th>
                 <th style={tableHeaderStyle}>Mål</th>
-                <th style={tableHeaderStyle}>Spelare</th>
                 <th style={tableHeaderStyle}>Tröjnummer</th>
+                <th style={tableHeaderStyle}>Spelare</th>
               </tr>
             </thead>
             <tbody>
@@ -981,23 +981,10 @@ export default function GamePage() {
                     <td
                       className={revealCellClassName}
                       style={getAnimatedGuessCellStyle(
-                        getGuessCellStyle(
-                          getStatusStyle(guess.comparisons.fullName)
+                        getStrictGuessCellStyle(
+                          guess.comparisons.swedenPrimaryShirtNumber
                         ),
                         6,
-                        isRevealing
-                      )}
-                    >
-                      {guess.guessedPlayer.fullName}
-                    </td>
-                    <td
-                      className={revealCellClassName}
-                      style={getAnimatedGuessCellStyle(
-                        getStrictGuessCellStyle(
-                          guess.comparisons.swedenPrimaryShirtNumber,
-                          "last"
-                        ),
-                        7,
                         isRevealing
                       )}
                     >
@@ -1005,6 +992,19 @@ export default function GamePage() {
                         guess.guessedPlayer.swedenPrimaryShirtNumber,
                         guess.comparisons.swedenPrimaryShirtNumber
                       )}
+                    </td>
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getGuessCellStyle(
+                          getStatusStyle(guess.comparisons.fullName),
+                          "last"
+                        ),
+                        7,
+                        isRevealing
+                      )}
+                    >
+                      {guess.guessedPlayer.fullName}
                     </td>
                   </tr>
                 );
