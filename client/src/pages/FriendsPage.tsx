@@ -27,9 +27,12 @@ type FriendRequest = {
 type FriendChallenge = {
   id: string;
   sessionId: string;
-  creator: FriendUser;
-  status: "IN_PROGRESS" | "SOLVED" | "FAILED";
-  attempts: number;
+  opponent: FriendUser;
+  createdByCurrentUser: boolean;
+  myStatus: "IN_PROGRESS" | "SOLVED" | "FAILED";
+  myAttempts: number;
+  opponentStatus: "IN_PROGRESS" | "SOLVED" | "FAILED";
+  opponentAttempts: number;
   createdAt: string;
 };
 
@@ -37,19 +40,25 @@ type FriendsDashboard = {
   friends: Array<FriendUser & { friendshipId: string }>;
   incomingRequests: FriendRequest[];
   outgoingRequests: FriendRequest[];
-  incomingChallenges: FriendChallenge[];
+  friendChallenges: FriendChallenge[];
 };
 
-function formatChallengeStatus(challenge: FriendChallenge) {
-  if (challenge.status === "SOLVED") {
-    return `Löst på ${challenge.attempts} försök`;
+function formatAttemptStatus(status: FriendChallenge["myStatus"], attempts: number) {
+  if (status === "SOLVED") {
+    return `löst på ${attempts} försök`;
   }
 
-  if (challenge.status === "FAILED") {
-    return "Förlorad";
+  if (status === "FAILED") {
+    return "förlorad";
   }
 
-  return "Inte spelad klart";
+  return "inte spelad klart";
+}
+
+function formatChallengeTitle(challenge: FriendChallenge) {
+  return challenge.createdByCurrentUser
+    ? `Du utmanade ${challenge.opponent.username}`
+    : `${challenge.opponent.username} utmanade dig`;
 }
 
 function formatSearchStatus(status: FriendSearchResult["friendshipStatus"]) {
@@ -325,23 +334,32 @@ export default function FriendsPage() {
         </div>
 
         <div className="friend-panel">
-          <h2>Inkommande utmaningar</h2>
-          {dashboard?.incomingChallenges.length ? (
+          <h2>Mina dueller</h2>
+          {dashboard?.friendChallenges.length ? (
             <div className="friend-list">
-              {dashboard.incomingChallenges.map((challenge) => (
+              {dashboard.friendChallenges.map((challenge) => (
                 <div className="friend-row" key={challenge.id}>
                   <div>
-                    <strong>{challenge.creator.username}</strong>
-                    <span>{formatChallengeStatus(challenge)}</span>
+                    <strong>{formatChallengeTitle(challenge)}</strong>
+                    <span>
+                      Du: {formatAttemptStatus(challenge.myStatus, challenge.myAttempts)}
+                    </span>
+                    <span>
+                      {challenge.opponent.username}:{" "}
+                      {formatAttemptStatus(
+                        challenge.opponentStatus,
+                        challenge.opponentAttempts
+                      )}
+                    </span>
                   </div>
                   <Link className="button" to={`/challenge/${challenge.sessionId}`}>
-                    Spela
+                    {challenge.myStatus === "IN_PROGRESS" ? "Spela" : "Visa"}
                   </Link>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="friend-empty">Du har inga utmaningar ännu.</p>
+            <p className="friend-empty">Du har inga dueller ännu.</p>
           )}
         </div>
       </section>

@@ -7,6 +7,16 @@ type UserSummary = {
   username: string;
 };
 
+type ChallengeAttemptWithUser = {
+  userId: string;
+  gameSessionId: string;
+  user: UserSummary;
+  gameSession: {
+    status: SessionStatus;
+    attempts: number;
+  };
+};
+
 function toUserSummary(user: UserSummary): UserSummary {
   return {
     id: user.id,
@@ -57,6 +67,90 @@ async function getRandomTargetPlayerName() {
 
 function createChallengeCode() {
   return Math.random().toString(36).slice(2, 10).toUpperCase();
+}
+
+function formatChallengeForUser(
+  currentUserId: string,
+  challenge: {
+    id: string;
+    creatorId: string;
+    createdAt: Date;
+    creator: UserSummary;
+    attempts: ChallengeAttemptWithUser[];
+  }
+) {
+  const myAttempt = challenge.attempts.find(
+    (attempt) => attempt.userId === currentUserId
+  );
+  const opponentAttempt = challenge.attempts.find(
+    (attempt) => attempt.userId !== currentUserId
+  );
+  const opponent =
+    opponentAttempt?.user ??
+    (challenge.creatorId === currentUserId ? null : challenge.creator);
+
+  if (!myAttempt || !opponent) {
+    return null;
+  }
+
+  return {
+    id: challenge.id,
+    sessionId: myAttempt.gameSessionId,
+    opponent: toUserSummary(opponent),
+    createdByCurrentUser: challenge.creatorId === currentUserId,
+    myStatus: myAttempt.gameSession.status,
+    myAttempts: myAttempt.gameSession.attempts,
+    opponentStatus: opponentAttempt?.gameSession.status ?? "IN_PROGRESS",
+    opponentAttempts: opponentAttempt?.gameSession.attempts ?? 0,
+    createdAt: challenge.createdAt,
+  };
+}
+
+async function ensureCreatorAttemptsForExistingChallenges(currentUserId: string) {
+  const challenges = await prisma.friendChallenge.findMany({
+    where: {
+      creatorId: currentUserId,
+      attempts: {
+        none: {
+          userId: currentUserId,
+        },
+      },
+    },
+  });
+
+  for (const challenge of challenges) {
+    await prisma.$transaction(async (tx) => {
+      const existingAttempt = await tx.friendChallengeAttempt.findUnique({
+        where: {
+          friendChallengeId_userId: {
+            friendChallengeId: challenge.id,
+            userId: currentUserId,
+          },
+        },
+      });
+
+      if (existingAttempt) {
+        return;
+      }
+
+      const session = await tx.gameSession.create({
+        data: {
+          userId: currentUserId,
+          mode: GameMode.FRIEND_CHALLENGE,
+          status: SessionStatus.IN_PROGRESS,
+          targetPlayerName: challenge.targetPlayerName,
+        },
+      });
+
+      await tx.friendChallengeAttempt.create({
+        data: {
+          friendChallengeId: challenge.id,
+          userId: currentUserId,
+          gameSessionId: session.id,
+        },
+      });
+    });
+  }
 }
 
 export async function searchUsersForFriends(currentUserId: string, query: string) {
@@ -169,7 +263,9 @@ export async function respondToFriendRequest(
 }
 
 export async function getFriendsDashboard(currentUserId: string) {
-  const [friendships, incomingChallenges] = await Promise.all([
+  await ensureCreatorAttemptsForExistingChallenges(currentUserId);
+
+  const [friendships, friendChallenges] = await Promise.all([
     prisma.friendship.findMany({
       where: {
         OR: [{ requesterId: currentUserId }, { receiverId: currentUserId }],
@@ -195,18 +291,33 @@ export async function getFriendsDashboard(currentUserId: string) {
         updatedAt: "desc",
       },
     }),
-    prisma.friendChallengeAttempt.findMany({
+    prisma.friendChallenge.findMany({
       where: {
-        userId: currentUserId,
+        attempts: {
+          some: {
+            userId: currentUserId,
+          },
+        },
       },
       include: {
-        gameSession: true,
-        friendChallenge: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+        attempts: {
           include: {
-            creator: {
+            user: {
               select: {
                 id: true,
                 username: true,
+              },
+            },
+            gameSession: {
+              select: {
+                status: true,
+                attempts: true,
               },
             },
           },
@@ -261,14 +372,9 @@ export async function getFriendsDashboard(currentUserId: string) {
     friends,
     incomingRequests,
     outgoingRequests,
-    incomingChallenges: incomingChallenges.map((attempt) => ({
-      id: attempt.friendChallenge.id,
-      sessionId: attempt.gameSessionId,
-      creator: toUserSummary(attempt.friendChallenge.creator),
-      status: attempt.gameSession.status,
-      attempts: attempt.gameSession.attempts,
-      createdAt: attempt.friendChallenge.createdAt,
-    })),
+    friendChallenges: friendChallenges
+      .map((challenge) => formatChallengeForUser(currentUserId, challenge))
+      .filter((challenge) => challenge !== null),
   };
 }
 
@@ -276,9 +382,18 @@ export async function createChallengeForFriend(
   currentUserId: string,
   friendId: string
 ) {
-  const friendship = await findFriendshipBetween(currentUserId, friendId);
+  const [friendship, friend] = await Promise.all([
+    findFriendshipBetween(currentUserId, friendId),
+    prisma.user.findUnique({
+      where: { id: friendId },
+      select: {
+        id: true,
+        username: true,
+      },
+    }),
+  ]);
 
-  if (!friendship || friendship.status !== FriendshipStatus.ACCEPTED) {
+  if (!friend || !friendship || friendship.status !== FriendshipStatus.ACCEPTED) {
     throw new Error("You can only challenge accepted friends");
   }
 
@@ -301,7 +416,16 @@ export async function createChallengeForFriend(
       },
     });
 
-    const session = await tx.gameSession.create({
+    const creatorSession = await tx.gameSession.create({
+      data: {
+        userId: currentUserId,
+        mode: GameMode.FRIEND_CHALLENGE,
+        status: SessionStatus.IN_PROGRESS,
+        targetPlayerName,
+      },
+    });
+
+    const friendSession = await tx.gameSession.create({
       data: {
         userId: friendId,
         mode: GameMode.FRIEND_CHALLENGE,
@@ -313,17 +437,28 @@ export async function createChallengeForFriend(
     await tx.friendChallengeAttempt.create({
       data: {
         friendChallengeId: challenge.id,
+        userId: currentUserId,
+        gameSessionId: creatorSession.id,
+      },
+    });
+
+    await tx.friendChallengeAttempt.create({
+      data: {
+        friendChallengeId: challenge.id,
         userId: friendId,
-        gameSessionId: session.id,
+        gameSessionId: friendSession.id,
       },
     });
 
     return {
       id: challenge.id,
-      sessionId: session.id,
-      creator: toUserSummary(challenge.creator),
-      status: session.status,
-      attempts: session.attempts,
+      sessionId: creatorSession.id,
+      opponent: toUserSummary(friend),
+      createdByCurrentUser: true,
+      myStatus: creatorSession.status,
+      myAttempts: creatorSession.attempts,
+      opponentStatus: friendSession.status,
+      opponentAttempts: friendSession.attempts,
       createdAt: challenge.createdAt,
     };
   });
