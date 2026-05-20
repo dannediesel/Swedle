@@ -8,6 +8,7 @@ import "./../App.css";
 type Player = {
   id: number;
   fullName: string;
+  imageUrl?: string | null;
   birthYear: number | null;
   primaryPosition: string;
   dominantFoot: string;
@@ -60,6 +61,76 @@ type GameState = {
   hints: GameHint[];
   availableHints: number;
 };
+
+const GUESS_REVEAL_CELL_COUNT = 8;
+const GUESS_REVEAL_STEP_MS = 500;
+const GUESS_REVEAL_DURATION_MS = 540;
+const GUESS_REVEAL_TOTAL_MS =
+  GUESS_REVEAL_STEP_MS * (GUESS_REVEAL_CELL_COUNT - 1) +
+  GUESS_REVEAL_DURATION_MS;
+
+type WikipediaThumbnailResponse = {
+  query?: {
+    pages?: Record<
+      string,
+      {
+        thumbnail?: {
+          source?: string;
+        };
+      }
+    >;
+  };
+};
+
+function getPlayerInitials(fullName: string) {
+  return fullName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((namePart) => namePart[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+async function fetchWikipediaPlayerImage(
+  playerName: string,
+  signal: AbortSignal
+) {
+  const languageCodes = ["sv", "en"];
+
+  for (const languageCode of languageCodes) {
+    const params = new URLSearchParams({
+      action: "query",
+      format: "json",
+      origin: "*",
+      redirects: "1",
+      prop: "pageimages",
+      piprop: "thumbnail",
+      pithumbsize: "640",
+      titles: playerName,
+    });
+
+    const response = await fetch(
+      `https://${languageCode}.wikipedia.org/w/api.php?${params.toString()}`,
+      { signal }
+    );
+
+    if (!response.ok) {
+      continue;
+    }
+
+    const data = (await response.json()) as WikipediaThumbnailResponse;
+    const page = Object.values(data.query?.pages ?? {}).find(
+      (candidatePage) => Boolean(candidatePage.thumbnail?.source)
+    );
+    const thumbnailSource = page?.thumbnail?.source;
+
+    if (thumbnailSource) {
+      return thumbnailSource;
+    }
+  }
+
+  return null;
+}
 
 // General color mapping for comparison cells in the guess table.
 function getStatusStyle(status: ComparisonStatus) {
@@ -142,6 +213,10 @@ export default function GamePage() {
   // Hints are generated and persisted by the backend.
   const [hints, setHints] = useState<GameHint[]>([]);
   const [availableHints, setAvailableHints] = useState(0);
+  const [winnerImageUrl, setWinnerImageUrl] = useState<string | null>(null);
+  const [winnerImageStatus, setWinnerImageStatus] = useState<
+    "idle" | "loading" | "ready" | "missing"
+  >("idle");
 
   // Simple user-facing error message for failed API calls.
   const [error, setError] = useState("");
@@ -151,12 +226,95 @@ export default function GamePage() {
 
   // Refs to suggestion elements, used to keep the selected suggestion visible while arrowing.
   const itemRefs = useRef<Array<HTMLLIElement | null>>([]);
+  const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The newest submitted guess reveals its cells from left to right.
+  const [revealingGuessPlayerId, setRevealingGuessPlayerId] = useState<number | null>(
+    null
+  );
+
   const trimmedQuery = query.trim();
 
   // Do not show old suggestions or guesses when the user is logged out.
   const visibleResults = user && trimmedQuery ? results : [];
   const visibleGuesses = user ? guesses : [];
   const visibleHints = user ? hints : [];
+  const isGuessRevealActive = revealingGuessPlayerId !== null;
+  const displayedGameStatus = isGuessRevealActive ? "IN_PROGRESS" : gameStatus;
+  const winningPlayer =
+    displayedGameStatus === "SOLVED"
+      ? (visibleGuesses.find((guess) => guess.isCorrect)?.guessedPlayer ?? null)
+      : null;
+  const winnerInitials = winningPlayer
+    ? getPlayerInitials(winningPlayer.fullName)
+    : "";
+
+  function clearGuessReveal() {
+    if (revealTimeoutRef.current) {
+      clearTimeout(revealTimeoutRef.current);
+      revealTimeoutRef.current = null;
+    }
+
+    setRevealingGuessPlayerId(null);
+  }
+
+  function startGuessReveal(playerId: number) {
+    clearGuessReveal();
+    setRevealingGuessPlayerId(playerId);
+
+    revealTimeoutRef.current = setTimeout(() => {
+      setRevealingGuessPlayerId((currentPlayerId) =>
+        currentPlayerId === playerId ? null : currentPlayerId
+      );
+      revealTimeoutRef.current = null;
+    }, GUESS_REVEAL_TOTAL_MS);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (revealTimeoutRef.current) {
+        clearTimeout(revealTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!winningPlayer) {
+      setWinnerImageUrl(null);
+      setWinnerImageStatus("idle");
+      return;
+    }
+
+    if (winningPlayer.imageUrl) {
+      setWinnerImageUrl(winningPlayer.imageUrl);
+      setWinnerImageStatus("ready");
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    setWinnerImageUrl(null);
+    setWinnerImageStatus("loading");
+
+    fetchWikipediaPlayerImage(winningPlayer.fullName, abortController.signal)
+      .then((imageUrl) => {
+        setWinnerImageUrl(imageUrl);
+        setWinnerImageStatus(imageUrl ? "ready" : "missing");
+      })
+      .catch((fetchError) => {
+        if (
+          fetchError instanceof DOMException &&
+          fetchError.name === "AbortError"
+        ) {
+          return;
+        }
+
+        setWinnerImageUrl(null);
+        setWinnerImageStatus("missing");
+      });
+
+    return () => abortController.abort();
+  }, [winningPlayer]);
 
   // The backend returns guesses oldest first, while the UI shows newest first.
   const applyGameState = useCallback((data: GameState) => {
@@ -293,6 +451,10 @@ export default function GamePage() {
       return;
     }
 
+    if (isGuessRevealActive) {
+      return;
+    }
+
     if (gameStatus !== "IN_PROGRESS") {
       setError(
         gameStatus === "FAILED"
@@ -320,6 +482,7 @@ export default function GamePage() {
 
       // The backend returns the full updated game state after the guess.
       applyGameState(data);
+      startGuessReveal(player.id);
       setQuery("");
       setResults([]);
       setSelectedIndex(-1);
@@ -400,12 +563,14 @@ export default function GamePage() {
   // The input is disabled until the user can submit a valid guess.
   const inputDisabled =
     !user ||
+    isGuessRevealActive ||
     gameStatus !== "IN_PROGRESS" ||
     (activeMode === "FRIEND_CHALLENGE" && !currentSessionId) ||
     (activeMode === "PRACTICE" && !practiceSessionId);
   const hintUnlockGuessesRemaining = Math.max(0, 3 - visibleGuesses.length);
   const canRequestHint =
     Boolean(user) &&
+    !isGuessRevealActive &&
     gameStatus === "IN_PROGRESS" &&
     visibleHints.length < availableHints;
 
@@ -460,6 +625,21 @@ export default function GamePage() {
     return getGuessCellStyle(getStrictStatusStyle(status), position);
   };
 
+  function getAnimatedGuessCellStyle(
+    cellStyle: ReturnType<typeof getGuessCellStyle>,
+    cellIndex: number,
+    isRevealing: boolean
+  ) {
+    if (!isRevealing) {
+      return cellStyle;
+    }
+
+    return {
+      ...cellStyle,
+      animationDelay: `${cellIndex * GUESS_REVEAL_STEP_MS}ms`,
+    };
+  }
+
   return (
     <div className="page">
       <div className="hero-panel">
@@ -480,7 +660,7 @@ export default function GamePage() {
           <div className="mode-switcher">
             <button
               onClick={loadDailyGame}
-              disabled={!user}
+              disabled={!user || isGuessRevealActive}
               className={`mode-button ${activeMode === "DAILY" ? "is-active" : ""}`}
             >
               Dagens utmaning
@@ -488,7 +668,7 @@ export default function GamePage() {
 
             <button
               onClick={startNewPracticeGame}
-              disabled={!user}
+              disabled={!user || isGuessRevealActive}
               className={`mode-button ${activeMode === "PRACTICE" ? "is-active" : ""}`}
             >
               Slumpmässigt spel
@@ -505,13 +685,48 @@ export default function GamePage() {
           </p>
 
           {/* The backend marks a session as SOLVED after a correct guess. */}
-          {gameStatus === "SOLVED" && (
+          {!isGuessRevealActive && gameStatus === "SOLVED" && winningPlayer && (
             <p className="success-message">
               Bra gissat! Du klarade det på {guesses.length} {guesses.length === 1 ? "försök" : "försök"}.
             </p>
           )}
 
-          {gameStatus === "FAILED" && (
+          {!isGuessRevealActive && gameStatus === "SOLVED" && winningPlayer && (
+            <section className="winner-card" aria-label="Vinnande spelare">
+              <div className="winner-portrait">
+                {winnerImageUrl && winnerImageStatus === "ready" ? (
+                  <img
+                    src={winnerImageUrl}
+                    alt={`Foto på ${winningPlayer.fullName}`}
+                    onError={() => {
+                      setWinnerImageUrl(null);
+                      setWinnerImageStatus("missing");
+                    }}
+                  />
+                ) : (
+                  <div
+                    className={`winner-avatar ${
+                      winnerImageStatus === "loading" ? "is-loading" : ""
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {winnerInitials}
+                  </div>
+                )}
+              </div>
+
+              <div className="winner-info">
+                <h2>{winningPlayer.fullName}</h2>
+                <p className="winner-meta">
+                  {winningPlayer.primaryPosition} •{" "}
+                  {winningPlayer.birthYear ?? "Okänt födelseår"} •{" "}
+                  {winningPlayer.nationalTeamCaps} landskamper
+                </p>
+              </div>
+            </section>
+          )}
+
+          {!isGuessRevealActive && gameStatus === "FAILED" && (
             <p className="failed-message">
               Omgången är förlorad efter 8 gissningar.
             </p>
@@ -523,15 +738,15 @@ export default function GamePage() {
                 <div>
                   <h2>Ledtrådar</h2>
                   <p>
-                    {gameStatus === "SOLVED"
+                    {displayedGameStatus === "SOLVED"
                       ? "Spelet är löst, men dina använda ledtrådar sparas här."
-                      : gameStatus === "FAILED"
+                      : displayedGameStatus === "FAILED"
                         ? "Omgången är avslutad, men dina använda ledtrådar sparas här."
                         : "Ledtrådar låses upp av dina gissningar och sparas i omgången."}
                   </p>
                 </div>
 
-                {gameStatus === "IN_PROGRESS" && hintUnlockGuessesRemaining > 0 && (
+                {displayedGameStatus === "IN_PROGRESS" && hintUnlockGuessesRemaining > 0 && (
                   <span className="hint-lock">
                     Låses upp efter {hintUnlockGuessesRemaining} fler{" "}
                     {hintUnlockGuessesRemaining === 1 ? "gissning" : "gissningar"}
@@ -639,74 +854,129 @@ export default function GamePage() {
               </tr>
             </thead>
             <tbody>
-              {visibleGuesses.map((guess, index) => (
-                <tr key={`${guess.guessedPlayer.id}-${index}`}>
-                  <td
-                    style={getGuessCellStyle(
-                      getStatusStyle(guess.comparisons.fullName),
-                      "first"
-                    )}
+              {visibleGuesses.map((guess) => {
+                const isRevealing =
+                  revealingGuessPlayerId === guess.guessedPlayer.id;
+                const revealCellClassName = isRevealing
+                  ? "guess-cell-reveal"
+                  : undefined;
+
+                return (
+                  <tr
+                    key={`${currentSessionId ?? activeMode}-${guess.guessedPlayer.id}`}
+                    className={isRevealing ? "guess-row-revealing" : undefined}
                   >
-                    {guess.guessedPlayer.fullName}
-                  </td>
-                  <td
-                    style={getGuessCellStyle(
-                      getStatusStyle(guess.comparisons.primaryPosition)
-                    )}
-                  >
-                    {guess.guessedPlayer.primaryPosition}
-                  </td>
-                  <td
-                    style={getGuessCellStyle(
-                      getStatusStyle(guess.comparisons.dominantFoot)
-                    )}
-                  >
-                    {guess.guessedPlayer.dominantFoot}
-                  </td>
-                  <td
-                    style={getStrictGuessCellStyle(
-                      guess.comparisons.swedenPrimaryShirtNumber
-                    )}
-                  >
-                    {formatNumberWithHint(
-                      guess.guessedPlayer.swedenPrimaryShirtNumber,
-                      guess.comparisons.swedenPrimaryShirtNumber
-                    )}
-                  </td>
-                  <td
-                    style={getGuessCellStyle(getStatusStyle(guess.comparisons.clubs))}
-                  >
-                    {guess.guessedPlayer.clubsClueList.join(", ")}
-                  </td>
-                  <td
-                    style={getStrictGuessCellStyle(guess.comparisons.birthYear)}
-                  >
-                    {formatNumberWithHint(
-                      guess.guessedPlayer.birthYear,
-                      guess.comparisons.birthYear
-                    )}
-                  </td>
-                  <td
-                    style={getStrictGuessCellStyle(guess.comparisons.nationalTeamCaps)}
-                  >
-                    {formatNumberWithHint(
-                      guess.guessedPlayer.nationalTeamCaps,
-                      guess.comparisons.nationalTeamCaps
-                    )}
-                  </td>
-                  <td
-                    style={getGuessCellStyle(
-                      getStatusStyle(guess.comparisons.nationalTeamGoals),
-                      "last"
-                    )}
-                  >
-                    {formatNumberWithHint(
-                      guess.guessedPlayer.nationalTeamGoals,
-                      guess.comparisons.nationalTeamGoals
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getGuessCellStyle(
+                          getStatusStyle(guess.comparisons.fullName),
+                          "first"
+                        ),
+                        0,
+                        isRevealing
+                      )}
+                    >
+                      {guess.guessedPlayer.fullName}
+                    </td>
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getGuessCellStyle(
+                          getStatusStyle(guess.comparisons.primaryPosition)
+                        ),
+                        1,
+                        isRevealing
+                      )}
+                    >
+                      {guess.guessedPlayer.primaryPosition}
+                    </td>
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getGuessCellStyle(
+                          getStatusStyle(guess.comparisons.dominantFoot)
+                        ),
+                        2,
+                        isRevealing
+                      )}
+                    >
+                      {guess.guessedPlayer.dominantFoot}
+                    </td>
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getStrictGuessCellStyle(
+                          guess.comparisons.swedenPrimaryShirtNumber
+                        ),
+                        3,
+                        isRevealing
+                      )}
+                    >
+                      {formatNumberWithHint(
+                        guess.guessedPlayer.swedenPrimaryShirtNumber,
+                        guess.comparisons.swedenPrimaryShirtNumber
+                      )}
+                    </td>
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getGuessCellStyle(
+                          getStatusStyle(guess.comparisons.clubs)
+                        ),
+                        4,
+                        isRevealing
+                      )}
+                    >
+                      {guess.guessedPlayer.clubsClueList.join(", ")}
+                    </td>
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getStrictGuessCellStyle(guess.comparisons.birthYear),
+                        5,
+                        isRevealing
+                      )}
+                    >
+                      {formatNumberWithHint(
+                        guess.guessedPlayer.birthYear,
+                        guess.comparisons.birthYear
+                      )}
+                    </td>
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getStrictGuessCellStyle(
+                          guess.comparisons.nationalTeamCaps
+                        ),
+                        6,
+                        isRevealing
+                      )}
+                    >
+                      {formatNumberWithHint(
+                        guess.guessedPlayer.nationalTeamCaps,
+                        guess.comparisons.nationalTeamCaps
+                      )}
+                    </td>
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getGuessCellStyle(
+                          getStatusStyle(guess.comparisons.nationalTeamGoals),
+                          "last"
+                        ),
+                        7,
+                        isRevealing
+                      )}
+                    >
+                      {formatNumberWithHint(
+                        guess.guessedPlayer.nationalTeamGoals,
+                        guess.comparisons.nationalTeamGoals
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

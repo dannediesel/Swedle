@@ -7,6 +7,7 @@ import { Player } from "../types/player";
 // This type makes the CSV-to-Player mapping explicit and easier to check.
 type PlayerCsvRow = {
   full_name: string;
+  image_url?: string;
   birth_year: string;
   primary_position: string;
   dominant_foot: string;
@@ -76,6 +77,7 @@ export async function getAllPlayers(): Promise<Player[]> {
   const players = rows.map((row, index) => ({
     id: index + 1,
     fullName: row.full_name.trim(),
+    imageUrl: row.image_url?.trim() || null,
     birthYear: toNullableNumber(row.birth_year),
     primaryPosition: row.primary_position.trim(),
     dominantFoot: row.dominant_foot.trim(),
