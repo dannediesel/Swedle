@@ -410,6 +410,30 @@
     transform 160ms ease;
 }
 
+.nav-link-with-badge {
+  position: relative;
+  padding-right: 1.35rem;
+}
+
+.nav-badge {
+  position: absolute;
+  top: 0.18rem;
+  right: 0.22rem;
+  display: grid;
+  min-width: 1rem;
+  height: 1rem;
+  place-items: center;
+  padding: 0 0.25rem;
+  border: 1px solid rgba(6, 27, 53, 0.28);
+  border-radius: 999px;
+  color: var(--sweden-blue-deep);
+  background: var(--kit-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 209, 25, 0.16);
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
 .nav-link.active {
   color: var(--kit-yellow);
   background:
@@ -493,8 +517,8 @@
 .hero-panel {
   position: relative;
   overflow: hidden;
-  min-height: 420px;
-  padding: clamp(1.2rem, 3vw, 2.25rem);
+  min-height: 380px;
+  padding: clamp(1rem, 2.5vw, 1.8rem);
   border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: var(--radius);
   background:
@@ -510,9 +534,9 @@
 .hero-panel::before {
   content: "";
   position: absolute;
-  inset: auto -8% -122px -8%;
+  inset: auto -8% -142px -8%;
   z-index: 0;
-  height: 235px;
+  height: 210px;
   background:
     radial-gradient(ellipse at center, transparent 0 34%, var(--pitch-line) 34.4% 35.3%, transparent 35.7%),
     linear-gradient(90deg, transparent 0 49.6%, var(--pitch-line) 49.6% 50.4%, transparent 50.4%),
@@ -549,7 +573,7 @@
   align-items: center;
   gap: 0.85rem;
   text-align: center;
-  min-height: 290px;
+  min-height: 250px;
 }
 
 .hero-content > * {
@@ -589,7 +613,7 @@
 
 .hero-title {
   color: var(--kit-yellow);
-  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-size: clamp(1.85rem, 4.2vw, 3.3rem);
   letter-spacing: 0;
   text-shadow:
     0 2px 0 rgba(0, 31, 70, 0.9),
@@ -624,6 +648,7 @@
 
 .selected-mode {
   color: rgba(248, 250, 252, 0.76);
+  font-size: 0.92rem;
   font-weight: 700;
 }
 
@@ -837,10 +862,11 @@
   position: absolute;
   z-index: 10;
   width: 100%;
-  max-height: 260px;
+  max-height: 190px;
   margin: 0.55rem 0 0;
   padding: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
   border: 1px solid rgba(6, 31, 63, 0.12);
   border-radius: var(--radius);
@@ -884,6 +910,7 @@
 .guess-table-shell,
 .stats-table-shell {
   width: 100%;
+  scroll-margin-top: 5.5rem;
   margin-top: 1.2rem;
   padding: 0.65rem;
   overflow-x: auto;

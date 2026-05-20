@@ -230,6 +230,7 @@ export default function GamePage() {
   // Refs to suggestion elements, used to keep the selected suggestion visible while arrowing.
   const itemRefs = useRef<Array<HTMLLIElement | null>>([]);
   const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const guessTableRef = useRef<HTMLDivElement | null>(null);
 
   // The newest submitted guess reveals its cells from left to right.
   const [revealingGuessPlayerId, setRevealingGuessPlayerId] = useState<number | null>(
@@ -425,11 +426,21 @@ export default function GamePage() {
   }, [user, trimmedQuery]);
 
   useEffect(() => {
-    // When navigating with arrow keys, scroll the active result into view.
-    if (selectedIndex >= 0 && itemRefs.current[selectedIndex]) {
-      itemRefs.current[selectedIndex]?.scrollIntoView({
-        block: "nearest",
-      });
+    // Keep keyboard navigation inside the dropdown without scrolling the whole page.
+    const selectedItem = itemRefs.current[selectedIndex];
+    const suggestionList = selectedItem?.parentElement;
+
+    if (selectedIndex >= 0 && selectedItem && suggestionList) {
+      const itemTop = selectedItem.offsetTop;
+      const itemBottom = itemTop + selectedItem.offsetHeight;
+      const visibleTop = suggestionList.scrollTop;
+      const visibleBottom = visibleTop + suggestionList.clientHeight;
+
+      if (itemTop < visibleTop) {
+        suggestionList.scrollTop = itemTop;
+      } else if (itemBottom > visibleBottom) {
+        suggestionList.scrollTop = itemBottom - suggestionList.clientHeight;
+      }
     }
   }, [selectedIndex]);
 
@@ -497,6 +508,13 @@ export default function GamePage() {
       setQuery("");
       setResults([]);
       setSelectedIndex(-1);
+
+      window.setTimeout(() => {
+        guessTableRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 80);
     } catch {
       setError("Kunde inte skicka gissningen. Spelaren kan redan ha gissats.");
     }
@@ -836,7 +854,7 @@ export default function GamePage() {
 
       {/* The table appears only after the first guess has been submitted. */}
       {visibleGuesses.length > 0 && (
-        <div className="guess-table-shell">
+        <div className="guess-table-shell" ref={guessTableRef}>
           <table
             style={{
               width: "100%",

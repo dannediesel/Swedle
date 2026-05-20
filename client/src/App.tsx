@@ -1,4 +1,6 @@
-import { Link, Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { apiRequest } from "./api/client";
 import { useAuth } from "./context/useAuth";
 import FriendsPage from "./pages/FriendsPage";
 import GamePage from "./pages/GamePage";
@@ -7,6 +9,14 @@ import RegisterPage from "./pages/RegisterPage";
 import StatsPage from "./pages/StatsPage";
 import "./App.css";
 
+type FriendsDashboardSummary = {
+  incomingRequests: unknown[];
+  friendChallenges: {
+    createdByCurrentUser: boolean;
+    myStatus: "IN_PROGRESS" | "SOLVED" | "FAILED";
+  }[];
+};
+
 // Top-level React component for the frontend.
 // It owns the main navigation and decides which page should be shown for each route.
 function App() {
@@ -14,6 +24,42 @@ function App() {
   // user tells us whether someone is logged in, logout clears the session,
   // and isLoading is true while the app checks an existing saved token.
   const { user, logout, isLoading } = useAuth();
+  const location = useLocation();
+  const [pendingFriendNotifications, setPendingFriendNotifications] = useState(0);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    let isCurrentRequest = true;
+
+    apiRequest<FriendsDashboardSummary>("/api/friends")
+      .then((dashboard) => {
+        if (!isCurrentRequest) {
+          return;
+        }
+
+        const incomingChallenges = dashboard.friendChallenges.filter(
+          (challenge) =>
+            !challenge.createdByCurrentUser &&
+            challenge.myStatus === "IN_PROGRESS"
+        ).length;
+
+        setPendingFriendNotifications(
+          dashboard.incomingRequests.length + incomingChallenges
+        );
+      })
+      .catch(() => {
+        if (isCurrentRequest) {
+          setPendingFriendNotifications(0);
+        }
+      });
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [user, location.pathname]);
 
   // Avoid rendering routes before we know whether the user already has a valid token.
   if (isLoading) {
@@ -48,7 +94,19 @@ function App() {
           </Link>
           <div className="route-tabs" aria-label="Huvudnavigation">
             <NavLink className="nav-link" to="/">Spel</NavLink>
-            <NavLink className="nav-link" to="/friends">Vänner</NavLink>
+            <NavLink
+              className={({ isActive }) =>
+                `nav-link nav-link-with-badge${isActive ? " active" : ""}`
+              }
+              to="/friends"
+            >
+              Vänner
+              {user && pendingFriendNotifications > 0 && (
+                <span className="nav-badge" aria-label={`${pendingFriendNotifications} väntar`}>
+                  {pendingFriendNotifications}
+                </span>
+              )}
+            </NavLink>
             <NavLink className="nav-link" to="/stats">Statistik</NavLink>
           </div>
         </div>

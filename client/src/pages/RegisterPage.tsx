@@ -21,6 +21,11 @@ export default function RegisterPage() {
     // Prevent a full browser reload when the form is submitted.
     event.preventDefault();
 
+    if (password.length < 6) {
+      setError("Lösenordet måste vara minst 6 tecken långt.");
+      return;
+    }
+
     try {
       setError("");
 
@@ -29,8 +34,12 @@ export default function RegisterPage() {
 
       // Registration does not log in automatically, so move the user to /login.
       navigate("/login");
-    } catch {
-      setError("Kunde inte skapa konto. Försök med ett annat användarnamn eller e-postadress.");
+    } catch (registerError) {
+      setError(
+        registerError instanceof Error
+          ? registerError.message
+          : "Kunde inte skapa konto. Försök med ett annat användarnamn eller e-postadress."
+      );
     }
   }
 

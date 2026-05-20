@@ -13,12 +13,12 @@ router.post("/register", async (req, res) => {
 
     // The route handles basic request validation before calling the service layer.
     if (!username || !email || !password) {
-      return res.status(400).json({ error: "Username, email and password are required" });
+      return res.status(400).json({ error: "Användarnamn, e-post och lösenord krävs." });
     }
 
     // Keep a minimum password length so users cannot register very weak passwords.
     if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
+      return res.status(400).json({ error: "Lösenordet måste vara minst 6 tecken långt." });
     }
 
     // registerUser contains the database logic and password hashing.
@@ -29,7 +29,9 @@ router.post("/register", async (req, res) => {
     console.error("Register error:", error);
 
     // Most register failures are user input problems, such as duplicate email/username.
-    return res.status(400).json({ error: "Could not register user" });
+    return res.status(400).json({
+      error: "Kunde inte skapa konto. Försök med ett annat användarnamn eller e-postadress.",
+    });
   }
 });
 
