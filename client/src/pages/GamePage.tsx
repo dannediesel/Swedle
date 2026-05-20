@@ -82,6 +82,12 @@ type WikipediaThumbnailResponse = {
   };
 };
 
+type WinnerImageState = {
+  playerName: string;
+  url: string | null;
+  status: "ready" | "missing";
+};
+
 function getPlayerInitials(fullName: string) {
   return fullName
     .split(/\s+/)
@@ -213,10 +219,7 @@ export default function GamePage() {
   // Hints are generated and persisted by the backend.
   const [hints, setHints] = useState<GameHint[]>([]);
   const [availableHints, setAvailableHints] = useState(0);
-  const [winnerImageUrl, setWinnerImageUrl] = useState<string | null>(null);
-  const [winnerImageStatus, setWinnerImageStatus] = useState<
-    "idle" | "loading" | "ready" | "missing"
-  >("idle");
+  const [winnerImage, setWinnerImage] = useState<WinnerImageState | null>(null);
 
   // Simple user-facing error message for failed API calls.
   const [error, setError] = useState("");
@@ -248,6 +251,18 @@ export default function GamePage() {
   const winnerInitials = winningPlayer
     ? getPlayerInitials(winningPlayer.fullName)
     : "";
+  const winnerImageMatches =
+    Boolean(winningPlayer) && winnerImage?.playerName === winningPlayer?.fullName;
+  const winnerImageUrl =
+    winningPlayer?.imageUrl ??
+    (winnerImageMatches && winnerImage?.status === "ready" ? winnerImage.url : null);
+  const winnerImageStatus = !winningPlayer
+    ? "idle"
+    : winnerImageUrl
+      ? "ready"
+      : winnerImageMatches && winnerImage
+        ? winnerImage.status
+        : "loading";
 
   function clearGuessReveal() {
     if (revealTimeoutRef.current) {
@@ -279,27 +294,20 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
-    if (!winningPlayer) {
-      setWinnerImageUrl(null);
-      setWinnerImageStatus("idle");
-      return;
-    }
-
-    if (winningPlayer.imageUrl) {
-      setWinnerImageUrl(winningPlayer.imageUrl);
-      setWinnerImageStatus("ready");
+    if (!winningPlayer || winningPlayer.imageUrl) {
       return;
     }
 
     const abortController = new AbortController();
+    const playerName = winningPlayer.fullName;
 
-    setWinnerImageUrl(null);
-    setWinnerImageStatus("loading");
-
-    fetchWikipediaPlayerImage(winningPlayer.fullName, abortController.signal)
+    fetchWikipediaPlayerImage(playerName, abortController.signal)
       .then((imageUrl) => {
-        setWinnerImageUrl(imageUrl);
-        setWinnerImageStatus(imageUrl ? "ready" : "missing");
+        setWinnerImage({
+          playerName,
+          url: imageUrl,
+          status: imageUrl ? "ready" : "missing",
+        });
       })
       .catch((fetchError) => {
         if (
@@ -309,8 +317,11 @@ export default function GamePage() {
           return;
         }
 
-        setWinnerImageUrl(null);
-        setWinnerImageStatus("missing");
+        setWinnerImage({
+          playerName,
+          url: null,
+          status: "missing",
+        });
       });
 
     return () => abortController.abort();
@@ -699,8 +710,11 @@ export default function GamePage() {
                     src={winnerImageUrl}
                     alt={`Foto på ${winningPlayer.fullName}`}
                     onError={() => {
-                      setWinnerImageUrl(null);
-                      setWinnerImageStatus("missing");
+                      setWinnerImage({
+                        playerName: winningPlayer.fullName,
+                        url: null,
+                        status: "missing",
+                      });
                     }}
                   />
                 ) : (
