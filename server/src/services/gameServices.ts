@@ -11,7 +11,14 @@ import {
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 // These statuses tell the frontend how to color a cell or show higher/lower hints.
-type ComparisonStatus = "correct" | "incorrect" | "higher" | "lower" | "partial";
+type ComparisonStatus =
+  | "correct"
+  | "incorrect"
+  | "higher"
+  | "lower"
+  | "muchHigher"
+  | "muchLower"
+  | "partial";
 
 // Complete response shape returned after a user submits one guess.
 type GuessResult = {
@@ -104,7 +111,7 @@ function compareGoalsWithinTen(
   }
 
   if (Math.abs(guessed - target) > 10) {
-    return "incorrect";
+    return guessed < target ? "muchHigher" : "muchLower";
   }
 
   return guessed < target ? "higher" : "lower";

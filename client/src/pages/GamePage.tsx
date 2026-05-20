@@ -23,7 +23,14 @@ type Player = {
 
 // Feedback statuses from the backend.
 // The frontend uses these values to decide colors and higher/lower arrows.
-type ComparisonStatus = "correct" | "incorrect" | "higher" | "lower" | "partial";
+type ComparisonStatus =
+  | "correct"
+  | "incorrect"
+  | "higher"
+  | "lower"
+  | "muchHigher"
+  | "muchLower"
+  | "partial";
 
 // The game page can show daily, friend challenge, or practice sessions.
 type GameMode = "DAILY" | "FRIEND_CHALLENGE" | "PRACTICE";
@@ -149,6 +156,8 @@ function getStatusStyle(status: ComparisonStatus) {
         color: "#effff5",
       };
     case "incorrect":
+    case "muchHigher":
+    case "muchLower":
       return {
         background:
           "linear-gradient(135deg, rgba(179, 54, 45, 0.96) 0%, rgba(125, 37, 45, 0.96) 100%)",
@@ -186,8 +195,8 @@ function getStrictStatusStyle(status: ComparisonStatus) {
 // Adds arrows to numeric clues when the target value is higher or lower than the guess.
 function formatNumberWithHint(value: number | null, status: ComparisonStatus) {
   if (value === null) return "Unknown";
-  if (status === "higher") return `${value} ↑`;
-  if (status === "lower") return `${value} ↓`;
+  if (status === "higher" || status === "muchHigher") return `${value} ↑`;
+  if (status === "lower" || status === "muchLower") return `${value} ↓`;
   return value;
 }
 
