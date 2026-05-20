@@ -864,25 +864,25 @@ export default function GamePage() {
             }}
           >
             <colgroup>
-              <col style={{ width: "12%" }} />
               <col style={{ width: "10%" }} />
               <col style={{ width: "7%" }} />
-              <col style={{ width: "12%" }} />
               <col style={{ width: "27%" }} />
               <col style={{ width: "10%" }} />
               <col style={{ width: "14%" }} />
               <col style={{ width: "8%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "12%" }} />
             </colgroup>
             <thead>
               <tr>
-                <th style={tableHeaderStyle}>Spelare</th>
                 <th style={tableHeaderStyle}>Position</th>
                 <th style={tableHeaderStyle}>Fot</th>
-                <th style={tableHeaderStyle}>Tröjnummer</th>
                 <th style={tableHeaderStyle}>Klubbar</th>
                 <th style={tableHeaderStyle}>Födelseår</th>
                 <th style={tableHeaderStyle}>Landskamper</th>
                 <th style={tableHeaderStyle}>Mål</th>
+                <th style={tableHeaderStyle}>Spelare</th>
+                <th style={tableHeaderStyle}>Tröjnummer</th>
               </tr>
             </thead>
             <tbody>
@@ -902,22 +902,10 @@ export default function GamePage() {
                       className={revealCellClassName}
                       style={getAnimatedGuessCellStyle(
                         getGuessCellStyle(
-                          getStatusStyle(guess.comparisons.fullName),
+                          getStatusStyle(guess.comparisons.primaryPosition),
                           "first"
                         ),
                         0,
-                        isRevealing
-                      )}
-                    >
-                      {guess.guessedPlayer.fullName}
-                    </td>
-                    <td
-                      className={revealCellClassName}
-                      style={getAnimatedGuessCellStyle(
-                        getGuessCellStyle(
-                          getStatusStyle(guess.comparisons.primaryPosition)
-                        ),
-                        1,
                         isRevealing
                       )}
                     >
@@ -929,7 +917,7 @@ export default function GamePage() {
                         getGuessCellStyle(
                           getStatusStyle(guess.comparisons.dominantFoot)
                         ),
-                        2,
+                        1,
                         isRevealing
                       )}
                     >
@@ -938,25 +926,10 @@ export default function GamePage() {
                     <td
                       className={revealCellClassName}
                       style={getAnimatedGuessCellStyle(
-                        getStrictGuessCellStyle(
-                          guess.comparisons.swedenPrimaryShirtNumber
-                        ),
-                        3,
-                        isRevealing
-                      )}
-                    >
-                      {formatNumberWithHint(
-                        guess.guessedPlayer.swedenPrimaryShirtNumber,
-                        guess.comparisons.swedenPrimaryShirtNumber
-                      )}
-                    </td>
-                    <td
-                      className={revealCellClassName}
-                      style={getAnimatedGuessCellStyle(
                         getGuessCellStyle(
                           getStatusStyle(guess.comparisons.clubs)
                         ),
-                        4,
+                        2,
                         isRevealing
                       )}
                     >
@@ -966,7 +939,7 @@ export default function GamePage() {
                       className={revealCellClassName}
                       style={getAnimatedGuessCellStyle(
                         getStrictGuessCellStyle(guess.comparisons.birthYear),
-                        5,
+                        3,
                         isRevealing
                       )}
                     >
@@ -981,7 +954,7 @@ export default function GamePage() {
                         getStrictGuessCellStyle(
                           guess.comparisons.nationalTeamCaps
                         ),
-                        6,
+                        4,
                         isRevealing
                       )}
                     >
@@ -994,7 +967,34 @@ export default function GamePage() {
                       className={revealCellClassName}
                       style={getAnimatedGuessCellStyle(
                         getGuessCellStyle(
-                          getStatusStyle(guess.comparisons.nationalTeamGoals),
+                          getStatusStyle(guess.comparisons.nationalTeamGoals)
+                        ),
+                        5,
+                        isRevealing
+                      )}
+                    >
+                      {formatNumberWithHint(
+                        guess.guessedPlayer.nationalTeamGoals,
+                        guess.comparisons.nationalTeamGoals
+                      )}
+                    </td>
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getGuessCellStyle(
+                          getStatusStyle(guess.comparisons.fullName)
+                        ),
+                        6,
+                        isRevealing
+                      )}
+                    >
+                      {guess.guessedPlayer.fullName}
+                    </td>
+                    <td
+                      className={revealCellClassName}
+                      style={getAnimatedGuessCellStyle(
+                        getStrictGuessCellStyle(
+                          guess.comparisons.swedenPrimaryShirtNumber,
                           "last"
                         ),
                         7,
@@ -1002,8 +1002,8 @@ export default function GamePage() {
                       )}
                     >
                       {formatNumberWithHint(
-                        guess.guessedPlayer.nationalTeamGoals,
-                        guess.comparisons.nationalTeamGoals
+                        guess.guessedPlayer.swedenPrimaryShirtNumber,
+                        guess.comparisons.swedenPrimaryShirtNumber
                       )}
                     </td>
                   </tr>

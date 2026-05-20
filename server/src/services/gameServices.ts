@@ -91,6 +91,25 @@ function compareNullableNumber(
   return guessed < target ? "higher" : "lower";
 }
 
+function compareGoalsWithinTen(
+  guessed: number | null,
+  target: number | null
+): ComparisonStatus {
+  if (guessed === null || target === null) {
+    return "incorrect";
+  }
+
+  if (guessed === target) {
+    return "correct";
+  }
+
+  if (Math.abs(guessed - target) > 10) {
+    return "incorrect";
+  }
+
+  return guessed < target ? "higher" : "lower";
+}
+
 // Normalize club names so small spelling differences do not block a reasonable match.
 // For example, accents and common club suffixes like IF/FF/FK are ignored.
 function normalizeClubName(club: string): string {
@@ -145,7 +164,7 @@ function comparePlayers(guessedPlayer: Player, targetPlayer: Player): GuessResul
         guessedPlayer.nationalTeamCaps,
         targetPlayer.nationalTeamCaps
       ),
-      nationalTeamGoals: compareNullableNumber(
+      nationalTeamGoals: compareGoalsWithinTen(
         guessedPlayer.nationalTeamGoals,
         targetPlayer.nationalTeamGoals
       ),
