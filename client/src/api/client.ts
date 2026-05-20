@@ -1,5 +1,7 @@
-// Base address for the Express backend during local development.
-const API_BASE_URL = "http://localhost:3000";
+// Base address for the Express backend.
+// Vercel injects VITE_API_BASE_URL at build time; local development falls back to localhost.
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 // Shared helper for calling the backend.
 // T describes the response type the caller expects back from the API.

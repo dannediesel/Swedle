@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { apiRequest } from "../api/client";
+import { API_BASE_URL, apiRequest } from "../api/client";
 import { useAuth } from "../context/useAuth";
 import "./../App.css";
 
@@ -240,7 +240,7 @@ export default function GamePage() {
 
     // Debounce search so the app does not call the backend on every single keystroke.
     const timeoutId = setTimeout(() => {
-      fetch(`http://localhost:3000/api/players/search?q=${encodeURIComponent(trimmedQuery)}`)
+      fetch(`${API_BASE_URL}/api/players/search?q=${encodeURIComponent(trimmedQuery)}`)
         .then((response) => response.json())
         .then((data) => {
           // Select the first result by default so Enter can submit it immediately.

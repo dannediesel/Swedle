@@ -10,8 +10,24 @@ import friendRoutes from "./routes/friendRoutes";
 // server.ts imports this app and is responsible for starting the HTTP server.
 const app = express();
 
-// Allow the Vite frontend on another port to call this backend during development.
-app.use(cors());
+// Allow the deployed frontend and local Vite dev server to call this backend.
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+].filter((origin): origin is string => Boolean(origin));
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
+  })
+);
 
 // Parse incoming JSON request bodies so routes can read req.body.
 app.use(express.json());
