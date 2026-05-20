@@ -821,6 +821,7 @@
 }
 
 .search-panel {
+  position: relative;
   width: min(100%, 540px);
   text-align: left;
 }
@@ -859,7 +860,7 @@
 }
 
 .suggestion-list {
-  position: absolute;
+  position: relative;
   z-index: 50;
   width: 100%;
   max-height: min(320px, 42vh);

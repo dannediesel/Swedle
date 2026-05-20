@@ -808,7 +808,7 @@ export default function GamePage() {
             </section>
           )}
 
-          <div className="search-panel" style={{ position: "relative" }}>
+          <div className="search-panel">
             <label htmlFor="player-search" className="field-label">
               Sök spelare
             </label>
