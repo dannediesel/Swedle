@@ -266,13 +266,15 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
   const winRate =
     gamesPlayed === 0 ? 0 : Math.round((wins / gamesPlayed) * 100);
 
-  const totalAttemptsForWins = solvedSessions.reduce(
+  const totalAttemptsForPlayedGames = countedSessions.reduce(
     (sum, session) => sum + session.attempts,
     0
   );
 
   const averageGuesses =
-    wins === 0 ? null : Number((totalAttemptsForWins / wins).toFixed(2));
+    gamesPlayed === 0
+      ? null
+      : Number((totalAttemptsForPlayedGames / gamesPlayed).toFixed(2));
 
   const streakSessions = countedSessions.map((session) => ({
     status: toStreakStatus(session),
