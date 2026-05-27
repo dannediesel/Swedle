@@ -1,3 +1,6 @@
+Now accessible via https://swedle.vercel.app/
+Make sure to refresh when entering due to cold start.
+
 # Swedle
 
 Swedle is a full-stack web application inspired by attribute-based guessing games.  
