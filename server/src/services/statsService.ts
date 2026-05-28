@@ -3,14 +3,24 @@ import { prisma } from "../config/prisma";
 import { MAX_GUESSES } from "../constants/gameRules";
 
 type FriendChallengeResult = "WIN" | "LOSS" | "DRAW" | "PENDING";
+type LeaderboardGameValue = {
+  scoreValue: number;
+  isWin: boolean;
+};
+
+const LEADERBOARD_MIN_COMPLETED_GAMES = 5;
+const LEADERBOARD_LOSS_SCORE = MAX_GUESSES + 1;
 
 export type LeaderboardEntry = {
   rank: number | null;
   userId: string;
   username: string;
-  solvedGames: number;
-  totalGuesses: number | null;
-  averageGuesses: number | null;
+  completedGames: number;
+  wins: number;
+  winRate: number;
+  totalScore: number | null;
+  averageScore: number | null;
+  isQualified: boolean;
   isCurrentUser: boolean;
 };
 
@@ -324,59 +334,82 @@ export async function getLeaderboardForUser(
       username: true,
       gameSessions: {
         where: {
-          status: SessionStatus.SOLVED,
           attempts: {
             gt: 0,
-            lte: MAX_GUESSES,
           },
+          OR: [
+            {
+              status: {
+                in: [SessionStatus.SOLVED, SessionStatus.FAILED],
+              },
+            },
+            {
+              attempts: {
+                gt: MAX_GUESSES,
+              },
+            },
+          ],
         },
-        select: {
-          attempts: true,
-        },
+        include: statsSessionInclude,
       },
     },
   });
 
   const leaderboard = users
     .map((user) => {
-      const solvedGames = user.gameSessions.length;
-      const totalGuesses = user.gameSessions.reduce(
-        (sum, session) => sum + session.attempts,
+      const gameValues = user.gameSessions
+        .map(getLeaderboardGameValue)
+        .filter((value): value is LeaderboardGameValue => value !== null);
+      const completedGames = gameValues.length;
+      const wins = gameValues.filter((value) => value.isWin).length;
+      const totalScore = gameValues.reduce(
+        (sum, value) => sum + value.scoreValue,
         0
       );
+      const isQualified = completedGames >= LEADERBOARD_MIN_COMPLETED_GAMES;
 
       return {
         rank: null,
         userId: user.id,
         username: user.username,
-        solvedGames,
-        totalGuesses: solvedGames > 0 ? totalGuesses : null,
-        averageGuesses:
-          solvedGames > 0
-            ? Number((totalGuesses / solvedGames).toFixed(2))
+        completedGames,
+        wins,
+        winRate:
+          completedGames > 0 ? Math.round((wins / completedGames) * 100) : 0,
+        totalScore: completedGames > 0 ? totalScore : null,
+        averageScore:
+          completedGames > 0
+            ? Number((totalScore / completedGames).toFixed(2))
             : null,
+        isQualified,
         isCurrentUser: user.id === currentUserId,
       } satisfies LeaderboardEntry;
     })
     .sort((a, b) => {
-      if (a.totalGuesses === null && b.totalGuesses === null) {
-        return a.username.localeCompare(b.username, "sv");
+      if (a.isQualified !== b.isQualified) {
+        return a.isQualified ? -1 : 1;
       }
 
-      if (a.totalGuesses === null) {
-        return 1;
+      if (a.averageScore !== null && b.averageScore !== null) {
+        if (a.averageScore !== b.averageScore) {
+          return a.averageScore - b.averageScore;
+        }
       }
 
-      if (b.totalGuesses === null) {
+      if (a.averageScore !== null && b.averageScore === null) {
         return -1;
       }
 
-      if (a.totalGuesses !== b.totalGuesses) {
-        return a.totalGuesses - b.totalGuesses;
+      if (a.averageScore === null && b.averageScore !== null) {
+        return 1;
       }
 
-      if (a.solvedGames !== b.solvedGames) {
-        return b.solvedGames - a.solvedGames;
+      if (a.completedGames !== b.completedGames) {
+        return b.completedGames - a.completedGames;
+      }
+
+      if (a.winRate !== b.winRate) {
+        return b.winRate - a.winRate;
       }
 
       return a.username.localeCompare(b.username, "sv");
@@ -385,7 +418,7 @@ export async function getLeaderboardForUser(
   let nextRank = 1;
 
   return leaderboard.map((entry) => {
-    if (entry.totalGuesses === null) {
+    if (!entry.isQualified) {
       return entry;
     }
 
@@ -394,4 +427,56 @@ export async function getLeaderboardForUser(
       rank: nextRank++,
     };
   });
+}
+
+function getLeaderboardGameValue(
+  session: StatsSession
+): LeaderboardGameValue | null {
+  const status = getEffectiveStatus(session);
+
+  if (session.mode === GameMode.FRIEND_CHALLENGE) {
+    const challengeResult = getFriendChallengeResult(session);
+
+    if (challengeResult === "PENDING" || challengeResult === null) {
+      return null;
+    }
+
+    if (challengeResult === "LOSS") {
+      return {
+        scoreValue: LEADERBOARD_LOSS_SCORE,
+        isWin: false,
+      };
+    }
+
+    if (challengeResult === "WIN") {
+      return {
+        scoreValue: session.attempts,
+        isWin: true,
+      };
+    }
+
+    return {
+      scoreValue:
+        status === SessionStatus.SOLVED
+          ? session.attempts
+          : LEADERBOARD_LOSS_SCORE,
+      isWin: false,
+    };
+  }
+
+  if (status === SessionStatus.SOLVED) {
+    return {
+      scoreValue: session.attempts,
+      isWin: true,
+    };
+  }
+
+  if (status === SessionStatus.FAILED) {
+    return {
+      scoreValue: LEADERBOARD_LOSS_SCORE,
+      isWin: false,
+    };
+  }
+
+  return null;
 }

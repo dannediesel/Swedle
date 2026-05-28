@@ -7,9 +7,12 @@ type LeaderboardEntry = {
   rank: number | null;
   userId: string;
   username: string;
-  solvedGames: number;
-  totalGuesses: number | null;
-  averageGuesses: number | null;
+  completedGames: number;
+  wins: number;
+  winRate: number;
+  totalScore: number | null;
+  averageScore: number | null;
+  isQualified: boolean;
   isCurrentUser: boolean;
 };
 
@@ -72,7 +75,10 @@ export default function LeaderboardPage() {
   return (
     <div className="stats-page leaderboard-page">
       <h1>Topplista</h1>
-      <p>All time-ranking efter totala gissningar på klarade spel.</p>
+      <p>
+        All time-ranking efter lägst snitt per avslutat spel. Förluster räknas
+        som 9 och minst 5 spel krävs för rank.
+      </p>
 
       {leaderboard.length === 0 ? (
         <p>Inga spelare ännu.</p>
@@ -89,9 +95,10 @@ export default function LeaderboardPage() {
               <tr>
                 <th style={tableHeaderStyle}>Rank</th>
                 <th style={tableHeaderStyle}>Spelare</th>
-                <th style={tableHeaderStyle}>Klarade spel</th>
-                <th style={tableHeaderStyle}>Totala gissningar</th>
                 <th style={tableHeaderStyle}>Snitt</th>
+                <th style={tableHeaderStyle}>Spelade</th>
+                <th style={tableHeaderStyle}>Vinstprocent</th>
+                <th style={tableHeaderStyle}>Poäng</th>
               </tr>
             </thead>
             <tbody>
@@ -111,9 +118,18 @@ export default function LeaderboardPage() {
                       {entry.isCurrentUser ? " (du)" : ""}
                     </strong>
                   </td>
-                  <td style={tableCellStyle}>{entry.solvedGames}</td>
-                  <td style={tableCellStyle}>{entry.totalGuesses ?? "-"}</td>
-                  <td style={tableCellStyle}>{entry.averageGuesses ?? "-"}</td>
+                  <td style={tableCellStyle}>{entry.averageScore ?? "-"}</td>
+                  <td style={tableCellStyle}>
+                    {entry.completedGames}
+                    {!entry.isQualified && (
+                      <span className="leaderboard-qualification-note">
+                        {" "}
+                        / 5
+                      </span>
+                    )}
+                  </td>
+                  <td style={tableCellStyle}>{entry.winRate}%</td>
+                  <td style={tableCellStyle}>{entry.totalScore ?? "-"}</td>
                 </tr>
               ))}
             </tbody>
