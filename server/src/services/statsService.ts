@@ -385,6 +385,7 @@ export async function getLeaderboardForUser(
         isCurrentUser: user.id === currentUserId,
       } satisfies LeaderboardEntry;
     })
+    .filter((entry) => entry.completedGames > 0)
     .sort((a, b) => {
       if (a.isQualified !== b.isQualified) {
         return a.isQualified ? -1 : 1;
