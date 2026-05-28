@@ -328,6 +328,8 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
 export async function getLeaderboardForUser(
   currentUserId: string
 ): Promise<LeaderboardEntry[]> {
+  const today = getTodayDate();
+
   const users = await prisma.user.findMany({
     select: {
       id: true,
@@ -339,14 +341,22 @@ export async function getLeaderboardForUser(
           },
           OR: [
             {
+              mode: GameMode.DAILY,
+            },
+            {
+              mode: GameMode.PRACTICE,
               status: {
                 in: [SessionStatus.SOLVED, SessionStatus.FAILED],
               },
             },
             {
+              mode: GameMode.PRACTICE,
               attempts: {
                 gt: MAX_GUESSES,
               },
+            },
+            {
+              mode: GameMode.FRIEND_CHALLENGE,
             },
           ],
         },
@@ -358,7 +368,7 @@ export async function getLeaderboardForUser(
   const leaderboard = users
     .map((user) => {
       const gameValues = user.gameSessions
-        .map(getLeaderboardGameValue)
+        .map((session) => getLeaderboardGameValue(session, today))
         .filter((value): value is LeaderboardGameValue => value !== null);
       const completedGames = gameValues.length;
       const wins = gameValues.filter((value) => value.isWin).length;
@@ -431,7 +441,8 @@ export async function getLeaderboardForUser(
 }
 
 function getLeaderboardGameValue(
-  session: StatsSession
+  session: StatsSession,
+  today: Date
 ): LeaderboardGameValue | null {
   const status = getEffectiveStatus(session);
 
@@ -463,6 +474,17 @@ function getLeaderboardGameValue(
           : LEADERBOARD_LOSS_SCORE,
       isWin: false,
     };
+  }
+
+  if (session.mode === GameMode.DAILY && status === SessionStatus.IN_PROGRESS) {
+    if (toDateKey(getSessionDate(session)) < toDateKey(today)) {
+      return {
+        scoreValue: LEADERBOARD_LOSS_SCORE,
+        isWin: false,
+      };
+    }
+
+    return null;
   }
 
   if (status === SessionStatus.SOLVED) {
