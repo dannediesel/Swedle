@@ -1,6 +1,6 @@
 import express from "express";
 import { requireAuth, AuthenticatedRequest } from "../auth-middleware/authMiddleware";
-import { getStatsForUser } from "../services/statsService";
+import { getLeaderboardForUser, getStatsForUser } from "../services/statsService";
 
 const router = express.Router();
 
@@ -17,6 +17,20 @@ router.get("/me", requireAuth, async (req: AuthenticatedRequest, res) => {
   } catch (error) {
     console.error("Error loading user stats:", error);
     return res.status(500).json({ error: "Failed to load user stats" });
+  }
+});
+
+router.get("/leaderboard", requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const leaderboard = await getLeaderboardForUser(req.user.userId);
+    return res.json(leaderboard);
+  } catch (error) {
+    console.error("Error loading leaderboard:", error);
+    return res.status(500).json({ error: "Failed to load leaderboard" });
   }
 });
 

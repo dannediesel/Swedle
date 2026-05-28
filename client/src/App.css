@@ -1134,6 +1134,19 @@
   font-weight: 950;
 }
 
+.leaderboard-current-row {
+  background: rgba(255, 209, 25, 0.16);
+}
+
+.leaderboard-rank {
+  color: var(--sweden-blue);
+  font-weight: 950;
+}
+
+.leaderboard-user-cell {
+  color: var(--sweden-blue-deep);
+}
+
 .section-title {
   margin-top: 2rem;
 }

@@ -4,6 +4,16 @@ import { MAX_GUESSES } from "../constants/gameRules";
 
 type FriendChallengeResult = "WIN" | "LOSS" | "DRAW" | "PENDING";
 
+export type LeaderboardEntry = {
+  rank: number | null;
+  userId: string;
+  username: string;
+  solvedGames: number;
+  totalGuesses: number | null;
+  averageGuesses: number | null;
+  isCurrentUser: boolean;
+};
+
 export type UserStats = {
   gamesPlayed: number;
   wins: number;
@@ -303,4 +313,85 @@ export async function getStatsForUser(userId: string): Promise<UserStats> {
     averageGuesses,
     recentGames,
   };
+}
+
+export async function getLeaderboardForUser(
+  currentUserId: string
+): Promise<LeaderboardEntry[]> {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      username: true,
+      gameSessions: {
+        where: {
+          status: SessionStatus.SOLVED,
+          attempts: {
+            gt: 0,
+            lte: MAX_GUESSES,
+          },
+        },
+        select: {
+          attempts: true,
+        },
+      },
+    },
+  });
+
+  const leaderboard = users
+    .map((user) => {
+      const solvedGames = user.gameSessions.length;
+      const totalGuesses = user.gameSessions.reduce(
+        (sum, session) => sum + session.attempts,
+        0
+      );
+
+      return {
+        rank: null,
+        userId: user.id,
+        username: user.username,
+        solvedGames,
+        totalGuesses: solvedGames > 0 ? totalGuesses : null,
+        averageGuesses:
+          solvedGames > 0
+            ? Number((totalGuesses / solvedGames).toFixed(2))
+            : null,
+        isCurrentUser: user.id === currentUserId,
+      } satisfies LeaderboardEntry;
+    })
+    .sort((a, b) => {
+      if (a.totalGuesses === null && b.totalGuesses === null) {
+        return a.username.localeCompare(b.username, "sv");
+      }
+
+      if (a.totalGuesses === null) {
+        return 1;
+      }
+
+      if (b.totalGuesses === null) {
+        return -1;
+      }
+
+      if (a.totalGuesses !== b.totalGuesses) {
+        return a.totalGuesses - b.totalGuesses;
+      }
+
+      if (a.solvedGames !== b.solvedGames) {
+        return b.solvedGames - a.solvedGames;
+      }
+
+      return a.username.localeCompare(b.username, "sv");
+    });
+
+  let nextRank = 1;
+
+  return leaderboard.map((entry) => {
+    if (entry.totalGuesses === null) {
+      return entry;
+    }
+
+    return {
+      ...entry,
+      rank: nextRank++,
+    };
+  });
 }

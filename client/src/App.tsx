@@ -4,6 +4,7 @@ import { apiRequest } from "./api/client";
 import { useAuth } from "./context/useAuth";
 import FriendsPage from "./pages/FriendsPage";
 import GamePage from "./pages/GamePage";
+import LeaderboardPage from "./pages/LeaderboardPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import StatsPage from "./pages/StatsPage";
@@ -107,6 +108,7 @@ function App() {
                 </span>
               )}
             </NavLink>
+            <NavLink className="nav-link" to="/leaderboard">Topplista</NavLink>
             <NavLink className="nav-link" to="/stats">Statistik</NavLink>
           </div>
         </div>
@@ -136,6 +138,7 @@ function App() {
         <Route path="/" element={<GamePage />} />
         <Route path="/challenge/:sessionId" element={<GamePage />} />
         <Route path="/friends" element={<FriendsPage />} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/stats" element={<StatsPage />} />
         <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />
